@@ -7,7 +7,7 @@
   "portsAttributes": {
     "8080": {
       "label": "WordPress",
-      "protocol": "https",
+      "protocol": "http",
       "autoForward": true
     }
   },
