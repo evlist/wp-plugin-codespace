@@ -3,9 +3,9 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "workspace",
   "workspaceFolder": "/workspaces/wp-plugin-codespace",
-  "forwardPorts": [443],
+  "forwardPorts": [8080],
   "portsAttributes": {
-    "443": {
+    "8080": {
       "label": "WordPress",
       "protocol": "https",
       "autoForward": true
