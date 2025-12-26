@@ -7,11 +7,16 @@
   "portsAttributes": {
     "8080": {
       "label": "WordPress",
+      "protocol": "https",
       "onAutoForward": "notify"
     }
   },
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "containerEnv": {
+    "DOCKER_API_VERSION": "1.43",
+    "COMPOSE_PROJECT_NAME": "wp-plugin-codespace_devcontainer"
   },
   "postCreateCommand": ".devcontainer/bin/wp-install.sh",
   "remoteUser": "vscode",

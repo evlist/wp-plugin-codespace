@@ -1,126 +1,83 @@
-#!/bin/bash
-# WordPress installation and configuration script
-# This script is idempotent and can be run multiple times
+#!/usr/bin/env bash
+# Idempotent WordPress installer that delegates to wp.sh for URL/env handling.
+set -euo pipefail
 
-set -e
+COMPOSE_FILE=".devcontainer/docker-compose.yml"
+DB_SERVICE="db"
+PROJECT="${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (devcontainer.json containerEnv)}"
 
-echo "==> Starting WordPress installation and configuration..."
+WP_PATH="${WP_PATH:-/var/www/html}"
+SITE_TITLE="${WP_TITLE:-WP Dev}"
+ADMIN_USER="${WP_ADMIN_USER:-admin}"
+ADMIN_PASS="${WP_ADMIN_PASS:-admin}"
+ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@example.test}"
+LOCALE="${WP_LOCALE:-en_US}"
+PLUGIN_SLUG="${PLUGIN_SLUG:-hello-world}"
+WP_PLUGINS="${WP_PLUGINS:-}"
 
-cd "$(dirname "$0")/.."
+wpcli() { .devcontainer/bin/wp.sh "$@"; }
+detected_url() { .devcontainer/bin/wp.sh __print-url; }
 
-# Source environment variables
-if [ -f .env ]; then
-    set -a
-    source .env
-    set +a
-fi
-
-# Set defaults
-WP_SITE_URL=${WP_SITE_URL:-http://localhost:8080}
-WP_TITLE=${WP_TITLE:-WordPress Plugin Development}
-WP_ADMIN_USER=${WP_ADMIN_USER:-admin}
-WP_ADMIN_PASSWORD=${WP_ADMIN_PASSWORD:-admin}
-WP_ADMIN_EMAIL=${WP_ADMIN_EMAIL:-admin@example.com}
-WP_LOCALE=${WP_LOCALE:-en_US}
-PLUGIN_SLUG=${PLUGIN_SLUG:-hello-world}
-
-# Wait for database to be ready
-echo "==> Waiting for database to be ready..."
-MAX_ATTEMPTS=60
-ATTEMPT=0
-until docker compose exec -T db mysqladmin ping -h localhost --silent 2>/dev/null; do
-    ATTEMPT=$((ATTEMPT + 1))
-    if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
-        echo "ERROR: Database failed to become ready in time"
-        exit 1
+echo "Waiting for DB to become healthy..."
+for i in $(seq 1 60); do
+  if docker compose -f "$COMPOSE_FILE" -p "$PROJECT" ps --services --filter "status=running" | grep -q "^${DB_SERVICE}$"; then
+    if docker compose -f "$COMPOSE_FILE" -p "$PROJECT" exec "$DB_SERVICE" mysqladmin ping -uroot -p"${MYSQL_ROOT_PASSWORD:-root}" --silent >/dev/null 2>&1; then
+      echo "DB is healthy."
+      break
     fi
-    echo "Waiting for database... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
-    sleep 2
+  fi
+  echo "DB not ready yet (attempt $i/60)..."; sleep 2
 done
 
-echo "==> Database is ready!"
+TARGET_URL="$(detected_url)"
+echo "Target site URL: ${TARGET_URL}"
 
-# Wait for WordPress container to be ready
-echo "==> Waiting for WordPress container to be ready..."
-ATTEMPT=0
-until docker compose exec -T wordpress curl -f http://localhost >/dev/null 2>&1; do
-    ATTEMPT=$((ATTEMPT + 1))
-    if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
-        echo "ERROR: WordPress container failed to become ready in time"
-        exit 1
-    fi
-    echo "Waiting for WordPress... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
-    sleep 2
-done
-
-echo "==> WordPress container is ready!"
-
-# Check if WordPress is already installed
-if docker compose exec -T wordpress wp --path=/var/www/html --allow-root core is-installed 2>/dev/null; then
-    echo "==> WordPress is already installed, skipping core installation"
+echo "Checking if WordPress is installed..."
+if wpcli core is-installed >/dev/null 2>&1; then
+  echo "WordPress already installed."
 else
-    echo "==> Installing WordPress..."
-    docker compose exec -T wordpress wp --path=/var/www/html --allow-root core install \
-        --url="$WP_SITE_URL" \
-        --title="$WP_TITLE" \
-        --admin_user="$WP_ADMIN_USER" \
-        --admin_password="$WP_ADMIN_PASSWORD" \
-        --admin_email="$WP_ADMIN_EMAIL" \
-        --skip-email
-    echo "==> WordPress installed successfully!"
+  echo "Installing WordPress..."
+  wpcli core install \
+    --title="$SITE_TITLE" \
+    --admin_user="$ADMIN_USER" \
+    --admin_password="$ADMIN_PASS" \
+    --admin_email="$ADMIN_EMAIL" \
+    --skip-email
+  wpcli config set FORCE_SSL_ADMIN true --type=constant --raw || true
+  if [[ -n "$LOCALE" && "$LOCALE" != "en_US" ]]; then
+    wpcli language core install "$LOCALE"
+    wpcli site switch-language "$LOCALE"
+  fi
+  wpcli rewrite structure '/%postname%/'
+  wpcli rewrite flush
 fi
 
-# Install and activate language if not en_US
-if [ "$WP_LOCALE" != "en_US" ]; then
-    echo "==> Setting up language: $WP_LOCALE..."
-    docker compose exec -T wordpress wp --path=/var/www/html --allow-root language core install "$WP_LOCALE" || true
-    docker compose exec -T wordpress wp --path=/var/www/html --allow-root site switch-language "$WP_LOCALE" || true
-fi
-
-# Set permalinks
-echo "==> Setting permalink structure..."
-docker compose exec -T wordpress wp --path=/var/www/html --allow-root rewrite structure '/%postname%/' --hard
+# Always set siteurl/home to the active Codespaces forwarded URL for the configured port
+wpcli option update siteurl "$TARGET_URL"
+wpcli option update home "$TARGET_URL"
 
 # Ensure admin user exists
-echo "==> Ensuring admin user exists..."
-if ! docker compose exec -T wordpress wp --path=/var/www/html --allow-root user get "$WP_ADMIN_USER" >/dev/null 2>&1; then
-    docker compose exec -T wordpress wp --path=/var/www/html --allow-root user create \
-        "$WP_ADMIN_USER" \
-        "$WP_ADMIN_EMAIL" \
-        --user_pass="$WP_ADMIN_PASSWORD" \
-        --role=administrator
+wpcli user get "$ADMIN_USER" >/dev/null 2>&1 || wpcli user create "$ADMIN_USER" "$ADMIN_EMAIL" --user_pass="$ADMIN_PASS" --role=administrator
+
+# Install & activate registry plugins (comma-separated)
+if [[ -n "$WP_PLUGINS" ]]; then
+  IFS=',' read -ra PLUGS <<< "$WP_PLUGINS"
+  for p in "${PLUGS[@]}"; do
+    wpcli plugin is-installed "$p" >/dev/null 2>&1 || wpcli plugin install "$p"
+    wpcli plugin activate "$p"
+  done
 fi
 
-# Install and activate additional plugins from WP_PLUGINS
-if [ -n "$WP_PLUGINS" ]; then
-    echo "==> Installing additional plugins: $WP_PLUGINS..."
-    IFS=',' read -ra PLUGINS <<< "$WP_PLUGINS"
-    for plugin in "${PLUGINS[@]}"; do
-        plugin=$(echo "$plugin" | xargs) # Trim whitespace
-        if [ -n "$plugin" ]; then
-            echo "Installing plugin: $plugin"
-            docker compose exec -T wordpress wp --path=/var/www/html --allow-root plugin install "$plugin" --activate || true
-        fi
-    done
+# Activate local plugin if mounted
+if wpcli plugin is-installed "$PLUGIN_SLUG" >/dev/null 2>&1; then
+  wpcli plugin activate "$PLUGIN_SLUG"
+  echo "Local plugin '${PLUGIN_SLUG}' activated."
+else
+  echo "Local plugin '${PLUGIN_SLUG}' not found under wp-content/plugins. Ensure plugins-src/${PLUGIN_SLUG} exists."
 fi
 
-# Activate local plugin
-if [ -n "$PLUGIN_SLUG" ] && [ -d "../plugins-src/$PLUGIN_SLUG" ]; then
-    echo "==> Activating local plugin: $PLUGIN_SLUG..."
-    docker compose exec -T wordpress wp --path=/var/www/html --allow-root plugin activate "$PLUGIN_SLUG" || true
-fi
+# Fix ownership
+docker compose -f "$COMPOSE_FILE" -p "$PROJECT" exec -u root wordpress bash -lc "chown -R www-data:www-data '${WP_PATH}' || true"
 
-# Ensure proper ownership
-echo "==> Setting proper file permissions..."
-docker compose exec -T wordpress chown -R www-data:www-data /var/www/html
-
-echo ""
-echo "=========================================="
-echo "WordPress installation completed!"
-echo "=========================================="
-echo "Site URL: $WP_SITE_URL"
-echo "Admin URL: $WP_SITE_URL/wp-admin"
-echo "Username: $WP_ADMIN_USER"
-echo "Password: $WP_ADMIN_PASSWORD"
-echo "=========================================="
-echo ""
+wpcli option get siteurl
+echo "Setup complete."
