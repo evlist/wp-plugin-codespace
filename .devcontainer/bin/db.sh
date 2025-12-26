@@ -10,9 +10,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # Navigate to project root
 cd "$PROJECT_ROOT"
 
-# Load environment variables
+# Load environment variables safely
 if [ -f .devcontainer/.env ]; then
-    export $(grep -v '^#' .devcontainer/.env | xargs)
+    set -a
+    source .devcontainer/.env
+    set +a
 fi
 
 # Execute mysql in the db container

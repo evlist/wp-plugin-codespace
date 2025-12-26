@@ -16,6 +16,9 @@ if (!defined('WPINC')) {
     die;
 }
 
+// Plugin version constant
+define('HELLO_WORLD_VERSION', '1.0.0');
+
 /**
  * Plugin activation hook
  */
@@ -65,12 +68,14 @@ add_shortcode('hello_world', 'hello_world_shortcode');
 
 /**
  * Register REST API endpoint
+ * Note: This endpoint is intentionally public (__return_true permission_callback)
+ * for demonstration purposes. In production, implement proper authentication.
  */
 function hello_world_register_rest_routes() {
     register_rest_route('hello/v1', '/ping', array(
         'methods' => 'GET',
         'callback' => 'hello_world_rest_ping',
-        'permission_callback' => '__return_true',
+        'permission_callback' => '__return_true', // Public endpoint for demo purposes
     ));
 }
 add_action('rest_api_init', 'hello_world_register_rest_routes');
@@ -82,7 +87,7 @@ function hello_world_rest_ping($request) {
     return new WP_REST_Response(array(
         'message' => 'Hello World! Plugin is working.',
         'timestamp' => current_time('mysql'),
-        'version' => '1.0.0',
+        'version' => HELLO_WORLD_VERSION,
     ), 200);
 }
 
@@ -144,7 +149,7 @@ add_action('admin_bar_menu', 'hello_world_admin_bar_node', 100);
  * Add footer marker
  */
 function hello_world_footer_marker() {
-    echo '<!-- Hello World Plugin v1.0.0 - Active -->';
+    echo '<!-- Hello World Plugin v' . HELLO_WORLD_VERSION . ' - Active -->';
 }
 add_action('wp_footer', 'hello_world_footer_marker');
 add_action('admin_footer', 'hello_world_footer_marker');
@@ -192,7 +197,7 @@ if (defined('WP_CLI') && WP_CLI) {
         public function status($args, $assoc_args) {
             WP_CLI::line('Hello World Plugin Status:');
             WP_CLI::line('-------------------------');
-            WP_CLI::line('Version: 1.0.0');
+            WP_CLI::line('Version: ' . HELLO_WORLD_VERSION);
             WP_CLI::line('Status: Active');
             
             // Check if shortcode is registered
