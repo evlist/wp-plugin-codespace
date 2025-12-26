@@ -43,18 +43,23 @@ else
     --admin_password="$ADMIN_PASS" \
     --admin_email="$ADMIN_EMAIL" \
     --skip-email
-  wpcli config set FORCE_SSL_ADMIN true --type=constant --raw || true
   if [[ -n "$LOCALE" && "$LOCALE" != "en_US" ]]; then
     wpcli language core install "$LOCALE"
     wpcli site switch-language "$LOCALE"
   fi
-  wpcli rewrite structure '/%postname%/'
-  wpcli rewrite flush
 fi
 
-# Always set siteurl/home to the active Codespaces forwarded URL (443)
+# Force canonical URL via constants and keep DB options in sync
+wpcli config set WP_HOME "$TARGET_URL" --type=constant
+wpcli config set WP_SITEURL "$TARGET_URL" --type=constant
+wpcli config set FORCE_SSL_ADMIN true --type=constant --raw || true
+
 wpcli option update siteurl "$TARGET_URL"
 wpcli option update home "$TARGET_URL"
+
+# Pretty permalinks and flush
+wpcli rewrite structure '/%postname%/'
+wpcli rewrite flush
 
 # Ensure admin user exists
 wpcli user get "$ADMIN_USER" >/dev/null 2>&1 || wpcli user create "$ADMIN_USER" "$ADMIN_EMAIL" --user_pass="$ADMIN_PASS" --role=administrator
@@ -79,5 +84,6 @@ fi
 # Fix ownership
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT" exec -u root wordpress bash -lc "chown -R www-data:www-data '${WP_PATH}' || true"
 
+# Show final URL
 wpcli option get siteurl
 echo "Setup complete."
