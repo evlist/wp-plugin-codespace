@@ -248,7 +248,11 @@ if (defined('WP_CLI') && WP_CLI) {
  */
 function hello_world_enqueue_styles() {
     if (!is_admin()) {
-        wp_add_inline_style('wp-block-library', '
+        // Enqueue our own minimal stylesheet handle
+        wp_register_style('hello-world-styles', false);
+        wp_enqueue_style('hello-world-styles');
+        
+        wp_add_inline_style('hello-world-styles', '
             .hello-world-message {
                 padding: 20px;
                 background: #f0f0f1;
