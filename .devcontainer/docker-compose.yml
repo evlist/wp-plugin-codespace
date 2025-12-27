@@ -41,6 +41,7 @@ services:
       WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
     volumes:
       - ../plugins-src/${PLUGIN_SLUG:-hello-world}:/var/www/html/wp-content/plugins/${PLUGIN_SLUG:-hello-world}
+      - ./wp-content/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
     depends_on:
       db:
         condition: service_healthy
