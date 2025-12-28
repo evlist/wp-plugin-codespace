@@ -1,8 +1,8 @@
 {
   "name": "WP Plugin Codespace (single-container LAMP)",
-  "dockerFile": "Dockerfile",
+  "dockerFile": ".devcontainer/Dockerfile",
   "remoteUser": "vscode",
-  "forwardPorts": [8080],
+  "forwardPorts": [80],
   "containerEnv": {
     "WP_DB_NAME": "wordpress",
     "WP_DB_USER": "wordpress",
