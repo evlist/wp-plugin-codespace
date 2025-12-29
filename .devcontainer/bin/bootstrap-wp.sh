@@ -18,7 +18,7 @@ ADMIN_USER="${WP_ADMIN_USER:-admin}"
 ADMIN_PASS="${WP_ADMIN_PASS:-admin}"
 ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@example.com}"
 
-PLUGIN_SLUG="${PLUGIN_SLUG:-hello-world}"
+PLUGIN_SLUG="${PLUGIN_SLUG:-local-hello-world}"
 DOCROOT="/var/www/html"
 WORKSPACE="/workspaces/wp-plugin-codespace"
 CODESPACE="${CODESPACE_NAME:-}"
@@ -143,8 +143,8 @@ wp option update siteurl "$WP_URL" \
 
 log "Linking workspace plugin and mu-plugins..."
 sudo mkdir -p "$DOCROOT/wp-content/plugins" "$DOCROOT/wp-content"
-if [ -d "$WORKSPACE/plugins-src/$PLUGIN_SLUG" ]; then
-  sudo ln -sfn "$WORKSPACE/plugins-src/$PLUGIN_SLUG" "$DOCROOT/wp-content/plugins/$PLUGIN_SLUG"
+if [ -d "$WORKSPACE/$PLUGIN_DIR" ]; then
+  sudo ln -sfn "$WORKSPACE/$PLUGIN_DIR" "$DOCROOT/wp-content/plugins/$PLUGIN_SLUG"
 fi
 if [ -d "$WORKSPACE/.devcontainer/wp-content/mu-plugins" ]; then
   sudo rm -rf "$DOCROOT/wp-content/mu-plugins" || true

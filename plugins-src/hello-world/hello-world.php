@@ -1,14 +1,14 @@
 <?php
 /**
- * Plugin Name: Hello World
+ * Plugin Name: Local Hello World
  * Plugin URI: https://github.com/evlist/wp-plugin-codespace
  * Description: A sample plugin demonstrating WordPress plugin development features including shortcodes, REST API, admin notices, and WP-CLI commands.
  * Version: 1.0.0
- * Author: Your Name
+ * Author: Eric van der Vlist
  * Author URI: https://github.com/evlist
  * License: GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain: hello-world
+ * Text Domain: local-hello-world
  */
 
 // If this file is called directly, abort.
@@ -19,56 +19,56 @@ if (!defined('WPINC')) {
 /**
  * Activation hook
  */
-function hello_world_activate() {
-    add_option('hello_world_activated', current_time('mysql'));
+function local_hello_world_activate() {
+    add_option('local_hello_world_activated', current_time('mysql'));
     flush_rewrite_rules();
 }
-register_activation_hook(__FILE__, 'hello_world_activate');
+register_activation_hook(__FILE__, 'local_hello_world_activate');
 
 /**
  * Deactivation hook
  */
-function hello_world_deactivate() {
-    delete_option('hello_world_activated');
+function local_hello_world_deactivate() {
+    delete_option('local_hello_world_activated');
     flush_rewrite_rules();
 }
-register_deactivation_hook(__FILE__, 'hello_world_deactivate');
+register_deactivation_hook(__FILE__, 'local_hello_world_deactivate');
 
 /**
- * Shortcode: [hello_world]
- * Displays a customizable hello world message
+ * Shortcode: [local_hello_world]
+ * Displays a customizable local hello world message
  */
-function hello_world_shortcode($atts) {
+function local_hello_world_shortcode($atts) {
     $atts = shortcode_atts(array(
         'name' => 'World',
-        'class' => 'hello-world-message'
-    ), $atts, 'hello_world');
+        'class' => 'local-hello-world-message'
+    ), $atts, 'local_hello_world');
     
     $name = esc_html($atts['name']);
     $class = esc_attr($atts['class']);
     
     return sprintf(
-        '<div class="%s"><p>Hello, %s! This is a message from the Hello World plugin.</p></div>',
+        '<div class="%s"><p>Hello, %s! This is a message from the Local Hello World plugin.</p></div>',
         $class,
         $name
     );
 }
-add_shortcode('hello_world', 'hello_world_shortcode');
+add_shortcode('local_hello_world', 'local_hello_world_shortcode');
 
 /**
  * REST API endpoint: /wp-json/hello/v1/ping
  * Returns a simple JSON response
  */
-function hello_world_register_rest_route() {
+function local_hello_world_register_rest_route() {
     register_rest_route('hello/v1', '/ping', array(
         'methods' => 'GET',
-        'callback' => 'hello_world_rest_callback',
+        'callback' => 'local_hello_world_rest_callback',
         'permission_callback' => '__return_true'
     ));
 }
-add_action('rest_api_init', 'hello_world_register_rest_route');
+add_action('rest_api_init', 'local_hello_world_register_rest_route');
 
-function hello_world_rest_callback($request) {
+function local_hello_world_rest_callback($request) {
     $name = $request->get_param('name');
     if (empty($name)) {
         $name = 'World';
@@ -85,13 +85,13 @@ function hello_world_rest_callback($request) {
  * Admin notice
  * Displays a notice on the admin dashboard
  */
-function hello_world_admin_notice() {
+function local_hello_world_admin_notice() {
     $screen = get_current_screen();
     if ($screen->id === 'dashboard') {
-        $activated = get_option('hello_world_activated');
+        $activated = get_option('local_hello_world_activated');
         ?>
         <div class="notice notice-success is-dismissible">
-            <p><strong>Hello World Plugin:</strong> Plugin is active and running! 
+            <p><strong>Local Hello World Plugin:</strong> Plugin is active and running! 
             <?php if ($activated) : ?>
                 Activated on <?php echo esc_html(date_i18n('F j, Y \a\t g:i a', strtotime($activated))); ?>
             <?php endif; ?>
@@ -100,32 +100,32 @@ function hello_world_admin_notice() {
         <?php
     }
 }
-add_action('admin_notices', 'hello_world_admin_notice');
+add_action('admin_notices', 'local_hello_world_admin_notice');
 
 /**
  * Admin bar node
  * Adds a custom node to the admin bar
  */
-function hello_world_admin_bar_node($wp_admin_bar) {
+function local_hello_world_admin_bar_node($wp_admin_bar) {
     if (!current_user_can('manage_options')) {
         return;
     }
     
     $args = array(
-        'id'    => 'hello-world',
-        'title' => '👋 Hello World',
+        'id'    => 'local-hello-world',
+        'title' => '👋 Local Hello World',
         'href'  => admin_url('plugins.php'),
         'meta'  => array(
-            'class' => 'hello-world-admin-bar',
-            'title' => 'Hello World Plugin'
+            'class' => 'local-hello-world-admin-bar',
+            'title' => 'Local Hello World Plugin'
         )
     );
     $wp_admin_bar->add_node($args);
     
     // Add a submenu item
     $wp_admin_bar->add_node(array(
-        'id'     => 'hello-world-test',
-        'parent' => 'hello-world',
+        'id'     => 'local-hello-world-test',
+        'parent' => 'local-hello-world',
         'title'  => 'Test REST API',
         'href'   => rest_url('hello/v1/ping'),
         'meta'   => array(
@@ -133,24 +133,24 @@ function hello_world_admin_bar_node($wp_admin_bar) {
         )
     ));
 }
-add_action('admin_bar_menu', 'hello_world_admin_bar_node', 100);
+add_action('admin_bar_menu', 'local_hello_world_admin_bar_node', 100);
 
 /**
  * Footer marker
  * Adds an HTML comment to the footer
  */
-function hello_world_footer_marker() {
-    echo '<!-- Hello World Plugin Active (v1.0.0) -->' . "\n";
+function local_hello_world_footer_marker() {
+    echo '<!-- Local Hello World Plugin Active (v1.0.0) -->' . "\n";
 }
-add_action('wp_footer', 'hello_world_footer_marker');
-add_action('admin_footer', 'hello_world_footer_marker');
+add_action('wp_footer', 'local_hello_world_footer_marker');
+add_action('admin_footer', 'local_hello_world_footer_marker');
 
 /**
- * WP-CLI Command: wp hello-world
+ * WP-CLI Command: wp local-hello-world
  * Custom WP-CLI command for testing
  */
 if (defined('WP_CLI') && WP_CLI) {
-    class Hello_World_CLI_Command {
+    class local_hello_world_CLI_Command {
         /**
          * Prints a greeting message.
          *
@@ -164,8 +164,8 @@ if (defined('WP_CLI') && WP_CLI) {
          *
          * ## EXAMPLES
          *
-         *     wp hello-world greet
-         *     wp hello-world greet "Developer"
+         *     wp local-hello-world greet
+         *     wp local-hello-world greet "Developer"
          *
          * @when after_wp_load
          */
@@ -179,7 +179,7 @@ if (defined('WP_CLI') && WP_CLI) {
          *
          * ## EXAMPLES
          *
-         *     wp hello-world info
+         *     wp local-hello-world info
          *
          * @when after_wp_load
          */
@@ -190,7 +190,7 @@ if (defined('WP_CLI') && WP_CLI) {
             WP_CLI::line('- Version: ' . $plugin_data['Version']);
             WP_CLI::line('- Description: ' . $plugin_data['Description']);
             
-            $activated = get_option('hello_world_activated');
+            $activated = get_option('local_hello_world_activated');
             if ($activated) {
                 WP_CLI::line('- Activated: ' . $activated);
             }
@@ -211,8 +211,8 @@ if (defined('WP_CLI') && WP_CLI) {
          *
          * ## EXAMPLES
          *
-         *     wp hello-world test-api
-         *     wp hello-world test-api --name="Developer"
+         *     wp local-hello-world test-api
+         *     wp local-hello-world test-api --name="Developer"
          *
          * @when after_wp_load
          */
@@ -240,26 +240,26 @@ if (defined('WP_CLI') && WP_CLI) {
         }
     }
     
-    WP_CLI::add_command('hello-world', 'Hello_World_CLI_Command');
+    WP_CLI::add_command('local-hello-world', 'local_hello_world_CLI_Command');
 }
 
 /**
  * Add inline styles for the shortcode
  */
-function hello_world_enqueue_styles() {
+function local_hello_world_enqueue_styles() {
     if (!is_admin()) {
         wp_add_inline_style('wp-block-library', '
-            .hello-world-message {
+            .local-hello-world-message {
                 padding: 20px;
                 background: #f0f0f1;
                 border-left: 4px solid #2271b1;
                 margin: 20px 0;
             }
-            .hello-world-message p {
+            .local-hello-world-message p {
                 margin: 0;
                 color: #2c3338;
             }
         ');
     }
 }
-add_action('wp_enqueue_scripts', 'hello_world_enqueue_styles');
+add_action('wp_enqueue_scripts', 'local_hello_world_enqueue_styles');

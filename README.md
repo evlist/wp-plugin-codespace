@@ -25,7 +25,7 @@ This devcontainer provides a complete WordPress development environment with:
 - **Helper Scripts**: Easy access to WP-CLI and MySQL from the workspace
 - **Automatic Setup**: Idempotent installer script completes WordPress configuration
 - **Plugin Mounting**: Local plugin directory automatically mounted and activated
-- **Sample Plugin**: "Hello World" plugin demonstrating WordPress features
+- **Sample Plugin**: "Local Hello World" plugin demonstrating WordPress features
 - **Port Forwarding**: WordPress accessible via Codespaces preview (port 8080)
 
 ## 📁 Project Structure
@@ -77,7 +77,7 @@ WP_LOCALE=en_US
 WP_PLUGINS=loco-translate
 
 # Local Plugin Configuration
-PLUGIN_SLUG=hello-world
+PLUGIN_SLUG=local-hello-world
 ```
 
 To customize your environment, edit these values before creating your codespace or rebuild after changes.
@@ -95,7 +95,7 @@ Execute WP-CLI commands in the WordPress container:
 .devcontainer/bin/wp.sh plugin list
 .devcontainer/bin/wp.sh user list
 .devcontainer/bin/wp.sh post create --post_title="Test Post" --post_status=publish
-.devcontainer/bin/wp.sh hello-world greet "Developer"
+.devcontainer/bin/wp.sh local-hello-world greet "Developer"
 ```
 
 ### MySQL Commands
@@ -149,17 +149,17 @@ docker compose up -d --build
 
 ## 📝 Sample Plugin
 
-The included "Hello World" plugin demonstrates:
+The included "Local Hello World" plugin demonstrates:
 
-- **Shortcode**: `[hello_world name="Developer"]`
+- **Shortcode**: `[local_hello_world name="Developer"]`
 - **REST API**: `/wp-json/hello/v1/ping`
 - **Admin Notice**: Displayed on the dashboard
 - **Admin Bar Node**: Custom toolbar item
 - **Footer Marker**: HTML comment in page footer
-- **WP-CLI Commands**: `wp hello-world greet`, `wp hello-world info`, `wp hello-world test-api`
+- **WP-CLI Commands**: `wp local-hello-world greet`, `wp local-hello-world info`, `wp local-hello-world test-api`
 - **Activation/Deactivation Hooks**: Proper plugin lifecycle management
 
-See `plugins-src/hello-world/README.md` for detailed usage and validation steps.
+See `plugins-src/local-hello-world/README.md` for detailed usage and validation steps.
 
 ## 🐛 Troubleshooting
 

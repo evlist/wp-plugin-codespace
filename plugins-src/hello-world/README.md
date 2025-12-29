@@ -1,4 +1,4 @@
-# Hello World Plugin
+# Local Hello World Plugin
 
 A sample WordPress plugin demonstrating various WordPress development features.
 
@@ -7,8 +7,8 @@ A sample WordPress plugin demonstrating various WordPress development features.
 This plugin demonstrates the following WordPress functionality:
 
 ### 1. Shortcode
-- **Usage**: `[hello_world]` or `[hello_world name="Developer"]`
-- **Description**: Displays a customizable hello world message with styling
+- **Usage**: `[local_hello_world]` or `[local_hello_world name="Developer"]`
+- **Description**: Displays a customizable local hello world message with styling
 - **Parameters**:
   - `name` (optional): The name to display in the greeting (default: "World")
   - `class` (optional): Custom CSS class for the message container
@@ -25,7 +25,7 @@ This plugin demonstrates the following WordPress functionality:
 - Shows when the plugin was activated
 
 ### 4. Admin Bar Node
-- Adds a "👋 Hello World" node to the WordPress admin bar (for administrators)
+- Adds a "👋 Local Hello World" node to the WordPress admin bar (for administrators)
 - Includes a submenu item to test the REST API endpoint
 
 ### 5. Footer Marker
@@ -37,15 +37,15 @@ Custom WP-CLI commands for testing and plugin interaction:
 
 ```bash
 # Greet command
-.devcontainer/bin/wp.sh hello-world greet
-.devcontainer/bin/wp.sh hello-world greet "Developer"
+.devcontainer/bin/wp.sh local-hello-world greet
+.devcontainer/bin/wp.sh local-hello-world greet "Developer"
 
 # Info command - shows plugin information
-.devcontainer/bin/wp.sh hello-world info
+.devcontainer/bin/wp.sh local-hello-world info
 
 # Test API command - tests the REST API endpoint
-.devcontainer/bin/wp.sh hello-world test-api
-.devcontainer/bin/wp.sh hello-world test-api --name="Developer"
+.devcontainer/bin/wp.sh local-hello-world test-api
+.devcontainer/bin/wp.sh local-hello-world test-api --name="Developer"
 ```
 
 ### 7. Activation/Deactivation Hooks
@@ -57,7 +57,7 @@ Custom WP-CLI commands for testing and plugin interaction:
 
 ### Test the Shortcode
 1. Create a new post or page in WordPress
-2. Add the shortcode: `[hello_world]` or `[hello_world name="YourName"]`
+2. Add the shortcode: `[local_hello_world]` or `[local_hello_world name="YourName"]`
 3. View the post/page to see the styled message
 
 ### Test the REST API
@@ -75,25 +75,25 @@ Custom WP-CLI commands for testing and plugin interaction:
 ### Test Admin Features
 1. Log in to WordPress admin (`http://localhost:8080/wp-admin`)
 2. Go to the Dashboard to see the admin notice
-3. Look at the admin bar (top of the screen) for the "👋 Hello World" item
+3. Look at the admin bar (top of the screen) for the "👋 Local Hello World" item
 
 ### Test WP-CLI Commands
 From the codespace terminal:
 
 ```bash
 # Test the greet command
-.devcontainer/bin/wp.sh hello-world greet "Developer"
+.devcontainer/bin/wp.sh local-hello-world greet "Developer"
 
 # Get plugin information
-.devcontainer/bin/wp.sh hello-world info
+.devcontainer/bin/wp.sh local-hello-world info
 
 # Test the REST API via CLI
-.devcontainer/bin/wp.sh hello-world test-api --name="CLI Test"
+.devcontainer/bin/wp.sh local-hello-world test-api --name="CLI Test"
 ```
 
 ### Test Footer Marker
 1. View the page source of any frontend page or admin page
-2. Look for the HTML comment: `<!-- Hello World Plugin Active (v1.0.0) -->`
+2. Look for the HTML comment: `<!-- Local Hello World Plugin Active (v1.0.0) -->`
 
 ## Development Notes
 
