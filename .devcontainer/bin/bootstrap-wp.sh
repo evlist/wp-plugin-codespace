@@ -4,6 +4,10 @@ set -euo pipefail
 log() { printf "[bootstrap] %s\n" "$*"; }
 die() { printf "[bootstrap:ERROR] %s\n" "$*" >&2; exit 1; }
 
+# Add a wp function andmake it available to terminals
+echo 'wp() { sudo -u www-data /usr/local/bin/wp "$@"; }' >> ~/.bash_aliases
+source ~/.bash_aliases
+
 DB_NAME="${WP_DB_NAME:-wordpress}"
 DB_USER="${WP_DB_USER:-wordpress}"
 DB_PASS="${WP_DB_PASS:-wordpress}"
@@ -111,30 +115,30 @@ sudo chown -R www-data:www-data "$WP_CLI_VAR_DIR"
 
 if [ ! -f "$DOCROOT/wp-load.php" ]; then
   log "Downloading WordPress core..."
-  sudo -u www-data wp core download --path="$DOCROOT" --force
+  wp core download --path="$DOCROOT" --force
 fi
 
 if [ ! -f "$DOCROOT/wp-config.php" ]; then
   log "Creating wp-config.php..."
-  sudo -u www-data wp config create \
+  wp config create \
     --path="$DOCROOT" \
     --dbname="$DB_NAME" --dbuser="$DB_USER" --dbpass="$DB_PASS" --dbhost="$DB_HOST" \
     --skip-check
 fi
 
-if ! sudo -u www-data wp core is-installed --path="$DOCROOT" >/dev/null 2>&1; then
+if ! wp core is-installed --path="$DOCROOT" >/dev/null 2>&1; then
   log "Installing WordPress..."
-  sudo -u www-data wp core install \
+  wp core install \
     --path="$DOCROOT" \
     --url="$WP_URL" \
     --title="$TITLE" \
     --admin_user="$ADMIN_USER" --admin_password="$ADMIN_PASS" --admin_email="$ADMIN_EMAIL"
 fi
 
-sudo -u www-data wp option update home "$WP_URL" \
+wp option update home "$WP_URL" \
   --path="$DOCROOT" 
 
-sudo -u www-data wp option update siteurl "$WP_URL" \
+wp option update siteurl "$WP_URL" \
   --path="$DOCROOT" 
 
 log "Linking workspace plugin and mu-plugins..."
@@ -153,7 +157,7 @@ sudo a2enmod rewrite >/dev/null 2>&1 || true
 sudo service apache2 restart || true
 
 # Pretty permalinks best-effort
-sudo -u www-data wp rewrite structure '/%postname%/' --path="$DOCROOT" >/dev/null 2>&1 || true
-sudo -u www-data wp rewrite flush --path="$DOCROOT" >/dev/null 2>&1 || true
+wp rewrite structure '/%postname%/' --path="$DOCROOT" >/dev/null 2>&1 || true
+wp rewrite flush --path="$DOCROOT" >/dev/null 2>&1 || true
 
 log "Done. Visit $WP_URL"
