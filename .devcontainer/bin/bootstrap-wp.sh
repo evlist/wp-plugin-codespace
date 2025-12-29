@@ -17,7 +17,13 @@ ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@example.com}"
 PLUGIN_SLUG="${PLUGIN_SLUG:-hello-world}"
 DOCROOT="/var/www/html"
 WORKSPACE="/workspaces/wp-plugin-codespace"
-WP_URL="http://localhost"  # forwardPorts: [80] in devcontainer.json
+CODESPACE="${CODESPACE_NAME:-}"
+if [ -n "$CODESPACE" ]; then
+  WP_URL="https://${CODESPACE}-80.app.github.dev"
+else
+  WP_URL="http://localhost"  # forwardPorts: [80] in devcontainer.json
+fi
+
 
 # --- MariaDB startup (robust) ---
 log "Preparing MariaDB directories..."
@@ -77,6 +83,14 @@ SQL
 echo 'ServerName localhost' | sudo tee /etc/apache2/conf-available/servername.conf >/dev/null
 sudo a2enconf servername >/dev/null 2>&1 || true
 
+# Trust the proxy
+sudo tee /etc/apache2/conf-available/codespaces-https.conf >/dev/null <<'APACHE'
+<IfModule mod_setenvif.c>
+    SetEnvIfNoCase X-Forwarded-Proto "^https$" HTTPS=on
+</IfModule>
+APACHE
+sudo a2enconf codespaces-https >/dev/null 2>&1 || true
+
 # Allow to sudo as www-data for wp cli
 echo 'vscode ALL=(www-data) NOPASSWD: /usr/local/bin/wp *' | sudo tee /etc/sudoers.d/99-wp-cli
 
@@ -117,6 +131,12 @@ if ! sudo -u www-data wp core is-installed --path="$DOCROOT" >/dev/null 2>&1; th
     --admin_user="$ADMIN_USER" --admin_password="$ADMIN_PASS" --admin_email="$ADMIN_EMAIL"
 fi
 
+sudo -u www-data wp option update home "$WP_URL" \
+  --path="$DOCROOT" 
+
+sudo -u www-data wp option update siteurl "$WP_URL" \
+  --path="$DOCROOT" 
+
 log "Linking workspace plugin and mu-plugins..."
 sudo mkdir -p "$DOCROOT/wp-content/plugins" "$DOCROOT/wp-content"
 if [ -d "$WORKSPACE/plugins-src/$PLUGIN_SLUG" ]; then
@@ -130,7 +150,7 @@ fi
 # --- Apache startup ---
 log "Starting Apache..."
 sudo a2enmod rewrite >/dev/null 2>&1 || true
-sudo service apache2 start || true
+sudo service apache2 restart || true
 
 # Pretty permalinks best-effort
 sudo -u www-data wp rewrite structure '/%postname%/' --path="$DOCROOT" >/dev/null 2>&1 || true
