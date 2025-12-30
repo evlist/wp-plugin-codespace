@@ -22,7 +22,7 @@ ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@example.com}"
 
 PLUGIN_SLUG="${PLUGIN_SLUG:-local-hello-world}"
 DOCROOT="/var/www/html"
-WORKSPACE="/workspaces/wp-plugin-codespace"
+WORKSPACE="/workspaces/${GITHUB_REPOSITORY##*/}"
 WORKSPACE_DOCROOT="${WORKSPACE}/.devcontainer/var/www/html"
 CODESPACE="${CODESPACE_NAME:-}"
 if [ -n "$CODESPACE" ]; then
@@ -34,6 +34,9 @@ fi
 # Add a wp function and make it available to terminals
 echo 'wp() { sudo -u www-data /usr/local/bin/wp --path="$DOCROOT" "$@"; }' >> ~/.bash_aliases
 source ~/.bash_aliases
+# Add install | update aliases to be used in codespace terminals
+echo 'alias cs_install="${CODESPACE_VSCODE_FOLDER}/.devcontainer/bin/install.sh"' >> ~/.bash_aliases
+echo 'alias cs_update="${CODESPACE_VSCODE_FOLDER}/.devcontainer/bin/install.sh"' >> ~/.bash_aliases
 
 # --- MariaDB startup (robust) ---
 log "Preparing MariaDB directories..."
