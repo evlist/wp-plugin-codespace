@@ -22,7 +22,7 @@ This devcontainer provides a complete WordPress development environment with:
 - **WordPress & MySQL**: Latest versions
 - **WP-CLI**: Pre-installed for command-line WordPress management
 - **Automatic Setup**: Idempotent installer script completes WordPress configuration
-- **Plugin Mounting**: Local plugin directory automatically mounted and activated
+- **Plugin Mounting**: Local plugin directory automatically symlinked and activated
 - **Sample Plugin**: "Local Hello World" plugin demonstrating WordPress features
 - **Port Forwarding**: WordPress accessible via Codespaces preview (port 80)
 
@@ -36,9 +36,14 @@ This devcontainer provides a complete WordPress development environment with:
 │   ├── Dockerfile              # WordPress container with WP-CLI
 │   ├── .env                    # Environment variables (customizable)
 │   └── bin/
+│       ├── bootstrap-wp.sh     # Bootstrap: DB, Apache, WP core, symlinks
 │       ├── wp.sh               # WP-CLI wrapper script
 │       ├── db.sh               # MySQL client wrapper script
 │       └── wp-install.sh       # WordPress installation script
+├── .vscode/
+│   ├── launch.json             # Static PHP debug config (single mapping)
+│   └── intelephense-stubs/
+│       └── wp-cli.php          # Editor-only stub for WP-CLI
 └── plugins-src/
     └── hello-world/            # Sample plugin directory
         ├── hello-world.php
@@ -88,7 +93,6 @@ wp post create --post_title="Test Post" --post_status=publish
 wp local-hello-world greet "Developer"
 ```
 
-
 ## 📝 Sample Plugin
 
 The included "Local Hello World" plugin demonstrates:
@@ -103,78 +107,61 @@ The included "Local Hello World" plugin demonstrates:
 
 See `plugins-src/local-hello-world/README.md` for detailed usage and validation steps.
 
+## ⚙️ Server path alignment (Docroot symlink)
 
-## ⚠️ Important Notes
+The bootstrap script symlinks `/var/www/html` to the workspace docroot so the debugger and WP-CLI operate on the same files:
+
+- Workspace docroot: `${workspaceFolder}/.devcontainer/var/www/html`
+- Symlink: `/var/www/html -> ${workspaceFolder}/.devcontainer/var/www/html`
+
+This ensures Xdebug’s server paths match files in your workspace and WP-CLI installs WordPress under the workspace.
+
+## 🐞 Debugging (Xdebug)
+
+We ship a simple, static PHP debug configuration. One listener handles both HTTP and CLI.
+
+```jsonc
+{
+  // Static VS Code PHP debug config.
+  // /var/www/html is symlinked to the workspace docroot by bootstrap.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen for Xdebug",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+      "log": true,
+      "pathMappings": {
+        "/var/www/html": "${workspaceFolder}/.devcontainer/var/www/html"
+      }
+    }
+  ]
+}
+```
+
+Notes:
+- No duplicate mappings are needed; the single root mapping covers WordPress core and plugins.
+- If you change the workspace docroot path, update the right-hand side of `pathMappings` accordingly.
+
+## 🧠 Editor setup: IntelliSense (Intelephense)
+
+- WordPress core is present in the workspace docroot, so Intelephense indexes the real source. No custom `intelephense.stubs` configuration is required.
+- If you previously configured stubs, you may remove that setting from `.vscode/settings.json` to use Intelephense’s defaults.
+- Changes to editor settings apply immediately; if the UI looks stale, run “Developer: Reload Window”.
+
+### WP‑CLI IntelliSense
+
+For better IntelliSense when writing WP‑CLI commands, we include a lightweight editor-only stub:
+
+- File: `.vscode/intelephense-stubs/wp-cli.php`
+- This stub is for static analysis only and is not loaded at runtime by WordPress.
+
+## 🔐 Important Notes
 
 - **Development Only**: This environment is for development and testing only. Do not use in production.
 - **Security**: Default credentials are weak and intended for local development only.
 - **Performance**: First startup may take several minutes as Docker images are downloaded and WordPress is configured.
-
-## Editor setup: PHP/WordPress IntelliSense
-
-This repo includes a VS Code configuration for PHP syntax highlighting, debugging with Xdebug, and IntelliSense for WordPress APIs. If you see “undefined function/constant/class” diagnostics from Intelephense, update the stubs list in `.vscode/settings.json`.
-
-### How to update `.vscode/settings.json` stubs
-
-1. Open `.vscode/settings.json` and edit the `intelephense.stubs` array.
-2. Use the exact, case‑sensitive names accepted by Intelephense. Recommended baseline for WordPress plugin work:
-
-```json
-"intelephense.stubs": [
-  "Core",
-  "standard",
-  "SPL",
-  "date",
-  "json",
-  "pcre",
-  "filter",
-  "mbstring",
-  "hash",
-  "iconv",
-  "curl",
-  "openssl",
-  "dom",
-  "libxml",
-  "SimpleXML",
-  "xml",
-  "xmlreader",
-  "xmlwriter",
-  "zip",
-  "PDO",
-  "mysqli",
-  "Reflection",
-  "Phar",
-  "wordpress"
-]
-```
-
-3. Save the file. Changes apply immediately. If the UI looks stale, run “Developer: Reload Window” from the Command Palette.
-
-Tips:
-- If a function shows as undefined, check its PHP manual page and add the stub for the extension listed there (examples: `strtotime` → `date`, `json_decode` → `json`, `preg_match` → `pcre`, `mb_strlen` → `mbstring`).
-- Avoid setting `intelephense.stubs` in `devcontainer.json` unless it matches your workspace list; devcontainer customizations can override workspace settings.
-- Ensure casing matches the accepted list exactly (e.g., `Core`, `SPL`, `PDO`, `SimpleXML`). Some names are capitalized, others are lowercase.
-
-### WP‑CLI IntelliSense
-
-To get IntelliSense for `WP_CLI` and common methods (`line`, `success`, `log`, `error`, etc.), we ship a local stub:
-
-- File: `.vscode/intelephense-stubs/wp-cli.php`
-- This stub is only for the editor and is not loaded by WordPress at runtime.
-
-If you use additional WP‑CLI APIs, extend the stub with the method signatures you need.
-
-### Extensions
-
-The devcontainer installs:
-- PHP Intelephense (`bmewburn.vscode-intelephense-client`)
-- PHP Debug (`xdebug.php-debug`)
-- PHPCS (`ikappas.phpcs`)
-- PHP Docblocker (`neilbrayfield.php-docblocker`)
-- WordPress Hooks IntelliSense (`johnbillion.vscode-wordpress-hooks`) — optional
-
-If an extension isn’t active in the remote container, open the Extensions view and “Install in Codespace …”, then “Developer: Reload Window”.
-
 
 ## 📚 Additional Resources
 
