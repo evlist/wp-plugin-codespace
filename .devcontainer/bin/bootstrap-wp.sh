@@ -176,12 +176,6 @@ wp rewrite flush --path="$DOCROOT" >/dev/null 2>&1 || true
 # Activate the plugin to test
 wp plugin activate $PLUGIN_SLUG
 
-# Create a first post
-wp post create --post_type=post --post_status=publish \
-  --post_title="Hello world!" \
-  --post_content="[local_hello_world]" \
-  --post_author=1
-
 # Example: WP_PLUGINS="akismet, jetpack@12.4, https://downloads.wordpress.org/plugin/wp-mail-smtp.latest-stable.zip"
 if [ -n "${WP_PLUGINS:-}" ]; then
   IFS=',' read -r -a _plugins <<< "$WP_PLUGINS"
@@ -216,6 +210,33 @@ if [ -n "${WP_PLUGINS:-}" ]; then
       fi
     fi
   done
+fi
+
+# --- Local bootstrap hook (optional) ---
+# LOCALBOOTSTRAP: path relative to $WORKSPACE (e.g., "scripts/bootstrap-local.sh")
+if [ -n "${LOCALBOOTSTRAP:-}" ]; then
+  # Allow absolute path too; otherwise treat as relative to $WORKSPACE
+  case "$LOCALBOOTSTRAP" in
+    /*) LOCALBOOTSTRAP_PATH="$LOCALBOOTSTRAP" ;;
+    *)  LOCALBOOTSTRAP_PATH="$WORKSPACE/$LOCALBOOTSTRAP" ;;
+  esac
+
+  if [ ! -f "$LOCALBOOTSTRAP_PATH" ]; then
+    log "LOCALBOOTSTRAP script not found at: ${LOCALBOOTSTRAP_PATH} (skipping)"
+  else
+    log "Executing LOCALBOOTSTRAP: ${LOCALBOOTSTRAP_PATH}"
+
+    # Source the script so it runs in the current shell: inherits all variables and functions
+    # Be tolerant of errors: don't abort the whole bootstrap
+    set +e
+    . "$LOCALBOOTSTRAP_PATH"
+    status=$?
+    set -e
+
+    if [ "$status" -ne 0 ]; then
+      log "LOCALBOOTSTRAP exited with status $status; continuing"
+    fi
+  fi
 fi
 
 log "Done. Visit your WP blog following the link in the Ports tab."
