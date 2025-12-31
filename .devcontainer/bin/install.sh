@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2025 Eric van der Vlist <vdv@dyomedea.com>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later OR MIT
+
 # Install or update .devcontainer and .vscode from a shared upstream.
 # - .devcontainer: force-sync (rsync --delete)
 # - .vscode: baseline-aware with side-by-side *.orig / *.dist and apt-style prompts.

@@ -36,16 +36,16 @@ This devcontainer provides a complete WordPress development environment with:
 
 ```
 .
-├── .env                        # Local environment variables overriding .devcontainer/.env
+├── .cs_env                        # Local environment variables overriding .devcontainer/.cs_env
 ├── bootstrap-local.sh          # Local bootstrap script
 ├── .devcontainer/
 │   ├── devcontainer.json       # VS Code devcontainer configuration
 │   ├── docker-compose.yml      # Docker Compose services definition
 │   ├── Dockerfile              # WordPress container with WP-CLI
-│   ├── .env                    # Environment variables (customizable)
+│   ├── .cs_env                    # Environment variables (customizable)
 │   └── bin/
 │       ├── bootstrap-wp.sh     # Bootstrap: DB, Apache, WP core, symlinks, ends up calling the localbootstrap script
-│       └── merge-env.sh        # Merge .env files
+│       └── merge-env.sh        # Merge .cs_env files
 ├── .vscode/
 │   ├── launch.json             # Static PHP debug config (single mapping)
 │   └── intelephense-stubs/
@@ -58,7 +58,7 @@ This devcontainer provides a complete WordPress development environment with:
 
 ## 🔧 Configuration
 
-All configuration is managed through `.devcontainer/.env`:
+All configuration is managed through `.devcontainer/.cs_env`:
 
 ```bash
 # WordPress database
@@ -81,7 +81,7 @@ PLUGIN_DIR=plugins-src/hello-world
 WP_PLUGINS=loco-translate
 ```
 
-To customize your environment, edit these values in the local .env file before creating your codespace or rebuild after changes.
+To customize your environment, edit these values in the local .cs_env file before creating your codespace or rebuild after changes.
 
 ## 🧩 Optional: Local bootstrap script (LOCALBOOTSTRAP)
 
@@ -89,7 +89,7 @@ To keep project‑generic bootstrap logic separate from plugin‑specific steps,
 
 - Purpose: add site content, tweak settings, activate extra plugins/themes, etc., without modifying the shared bootstrap (e.g., skip creating the hello‑world post when debugging other plugins).
 - Execution model: the script is sourced (not executed), so it runs in the same shell and inherits all variables and the `wp` function defined by the bootstrap. Errors are logged but do not abort provisioning.
-- Where to declare: preferably in a workspace‑local `.env` file at the repository root, which is merged into `.devcontainer/.env` on startup.
+- Where to declare: preferably in a workspace‑local `.cs_env` file at the repository root, which is merged into `.devcontainer/.cs_env` on startup.
 
 Setup
 
@@ -109,9 +109,9 @@ wp post create --post_type=post --post_status=publish \
 # wp plugin install query-monitor --activate || true
 ```
 
-2) In your workspace root `.env` file (not .devcontainer/.env), set the relative path:
+2) In your workspace root `.cs_env` file (not .devcontainer/.cs_env), set the relative path:
 ```env
-# file: .env (workspace root)
+# file: .cs_env (workspace root)
 LOCALBOOTSTRAP=scripts/bootstrap-local.sh
 ```
 
