@@ -412,14 +412,9 @@ push_branch() {
   local repo_dir="$1" branch="$2"
   info "Pushing branch $branch..."
 
-  if env -u GITHUB_TOKEN git -C "$repo_dir" -c credential.helper='!gh auth git-credential' push origin HEAD 2> >(tee /tmp/graft_push_err.$$ >&2); then
+  if env -u GITHUB_TOKEN git -C "$repo_dir" -c credential.helper='!gh auth git-credential' push -u origin HEAD 2> >(tee /tmp/graft_push_err.$$ >&2); then
     info "Pushed HEAD -> origin (via gh credential helper)"
     PUSH_SUCCEEDED_WITHOUT_TOKEN=true
-    local local_branch
-    local_branch="$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-    if [ -n "$local_branch" ] && git -C "$repo_dir" show-ref --verify -- "refs/heads/$local_branch" >/dev/null 2>&1; then
-      git -C "$repo_dir" branch --set-upstream-to="origin/$branch" "$local_branch" 2>/dev/null || true
-    fi
     rm -f /tmp/graft_push_err.$$ 2>/dev/null || true
     return 0
   else
@@ -435,7 +430,7 @@ push_branch() {
       return 1
     fi
     if prompt_confirm "Remote branch has conflicting commits. Attempt a safe force push (git push --force-with-lease)?" no; then
-      if env -u GITHUB_TOKEN git -C "$repo_dir" -c credential.helper='!gh auth git-credential' push origin HEAD:"$branch" --force-with-lease; then
+      if env -u GITHUB_TOKEN git -C "$repo_dir" -c credential.helper='!gh auth git-credential' push -u origin HEAD:"$branch" --force-with-lease; then
         info "Force-with-lease push succeeded."
         PUSH_SUCCEEDED_WITHOUT_TOKEN=true
         return 0
