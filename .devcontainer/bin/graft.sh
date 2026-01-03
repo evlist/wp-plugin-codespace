@@ -63,8 +63,8 @@ _prompt_read() {
 # prompt_confirm(prompt_text, default)
 #   default: "yes" or "no"
 # The function prints the prompt with the canonical suffix:
-#   default=yes -> " ... [Y/n]"
-#   default=no  -> " ... [y/N]"
+#   default=yes -> " ... [Yn]"
+#   default=no  -> " ... [yN]"
 # Returns 0 for yes, 1 for no.
 prompt_confirm() {
   local prompt="${1:-Proceed?}"
@@ -75,9 +75,9 @@ prompt_confirm() {
   fi
   local suffix
   case "$default" in
-    yes|YES|Yes) suffix='[Y/n]' ;;
-    no|NO|No)    suffix='[y/N]' ;;
-    *) suffix='[y/N]' ;;
+    yes|YES|Yes) suffix='[Yn]' ;;
+    no|NO|No)    suffix='[yN]' ;;
+    *) suffix='[yN]' ;;
   esac
 
   local raw=""
@@ -93,7 +93,7 @@ prompt_confirm() {
     '')  # empty => choose default
       if [[ "$default" =~ ^([yY][eE][sS])$ ]]; then return 0; else return 1; fi
       ;;
-    *)   # unknown input: treat as default=no for safety
+    *)   # unknown input: use default
       if [[ "$default" =~ ^([yY][eE][sS])$ ]]; then return 0; else return 1; fi
       ;;
   esac
@@ -363,8 +363,17 @@ apply_vscode_baseline() {
             if command -v git >/dev/null 2>&1; then git merge-file -p "$dest" "$base" "$uf" > "$merged" || true; else diff3 -m "$dest" "$base" "$uf" > "$merged" || true; fi
             info "---- merged preview (first 60 lines) ----"
             head -n 60 "$merged" || true
-            _prompt_read "Apply merged result to $rel? [y/N]:" apply
-            if [ "${apply:-N}" = "y" ] || [ "${apply:-Y}" = "Y" ]; then install -m 0644 "$merged" "$dest"; install -m 0644 "$uf" "$base"; info "merged applied"; rm -f "$merged"; break; else info "merge discarded"; rm -f "$merged"; continue; fi
+            if prompt_confirm "Apply merged result to $rel?" no; then
+              install -m 0644 "$merged" "$dest"
+              install -m 0644 "$uf" "$base"
+              info "merged applied"
+              rm -f "$merged"
+              break
+            else
+              info "merge discarded"
+              rm -f "$merged"
+              continue
+            fi
           fi
           ;;
         r|R)
@@ -544,9 +553,7 @@ if [ -n "${SCION_LOCAL_PATH:-}" ] && [ -d "$SCION_LOCAL_PATH/.git" ]; then
   scion_dirty_msg=""
   if [ -n "$(git -C "$SCION_LOCAL_PATH" status --porcelain 2>/dev/null || true)" ]; then scion_dirty_msg=" (local working tree has uncommitted changes)"; fi
   if [ "$NON_INTERACTIVE" != "true" ]; then
-    _prompt_read "Scion is a local git repo at $SCION_LOCAL_PATH${scion_dirty_msg}. Re-clone scion from its origin remote into a clean tmp dir before graft? [y/N]:" reclone_choice
-    reclone_choice="${reclone_choice:-N}"
-    if [[ "$reclone_choice" =~ ^[Yy]$ ]]; then
+    if prompt_confirm "Scion is a local git repo at $SCION_LOCAL_PATH${scion_dirty_msg}. Re-clone scion from its origin remote into a clean tmp dir before graft?" no; then
       origin_url="$(git -C "$SCION_LOCAL_PATH" config --get remote.origin.url || true)"
       if [ -n "$origin_url" ]; then
         info "Re-cloning scion from $origin_url into tmp for a clean copy..."
@@ -704,14 +711,13 @@ if [ "$AUTO_SHELL_NO_TOKEN" = true ]; then
 fi
 
 if [ "$NON_INTERACTIVE" != "true" ] && prompt_confirm "Open a new shell in $STOCK_LOCAL_PATH now?" no; then
-  _prompt_read "Open new shell without GITHUB_TOKEN? [y/N]:" shellopt
-  shellopt="${shellopt:-N}"
-  cd "$STOCK_LOCAL_PATH"
-  if [[ "$shellopt" =~ ^[Yy]$ ]]; then
+  if prompt_confirm "Open new shell without GITHUB_TOKEN?" no; then
     info "Starting new shell without GITHUB_TOKEN..."
+    cd "$STOCK_LOCAL_PATH"
     exec env -u GITHUB_TOKEN SHLVL=1 bash --login -i
   else
     info "Starting new shell at $STOCK_LOCAL_PATH..."
+    cd "$STOCK_LOCAL_PATH"
     exec SHLVL=1 bash --login -i
   fi
 fi
