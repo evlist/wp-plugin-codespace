@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <path fill="#21759b" d="M16 18c-1.1 0-2 .9-2 2v26c0 1.1.9 2 2 2h28V18H16z"/>
-  <path fill="#1a5a78" d="M14 20v26c0 1.1.9 2 2 2h2V18h-2c-1.1 0-2 .9-2 2z"/>
+  <path fill="#21759b" d="M18 22c-1.1 0-2 .9-2 2v24c0 1.1.9 2 2 2h24V22H18z"/>
+  <path fill="#1a5a78" d="M16 24v24c0 1.1.9 2 2 2h2V22h-2c-1.1 0-2 .9-2 2z"/>
   
-  <g transform="translate(26, 12)">
-    <path fill="white" d="M-2 2.5h18v22l-9-5.5-9 5.5z" />
+  <g transform="translate(26, 15)">
+    <path fill="white" d="M-2 2.5h18v20l-9-5.5-9 5.5z" />
     
     <path fill="#2ea44f" d="M0 4.5h14v16l-7-4-7 4z" />
     
@@ -12,11 +12,10 @@
       <path d="M5 0h3.5v1h-2v1h2v3H5V4h2V3H5V0z"/>
     </g>
 
-    <g transform="translate(7, 1)">
-      <path fill="white" d="M0 0c0-9-7-12-14-12 0 9 7 12 14 12z" />
-      <path fill="#2ea44f" d="M-1 -1.5c0-7-6-10-12-10 0 7 6 10 12 10z" />
-      <path fill="white" d="M0 0c0-9 7-12 14-12 0 9-7 12-14 12z" />
-      <path fill="#2ea44f" d="M1 -1.5c0-7-6-10-12-10 0 7 6 10 12 10z" transform="scale(-1,1)"/>
+    <g transform="translate(7, 2)">
+      <path fill="white" d="M0 0c0-10-8-12-14-12 0 10 8 12 14 12zM0 0c0-10 8-12 14-12 0 10-8 12-14 12z" />
+      <path fill="#2ea44f" d="M-0.5 -1c0-8-6-10-11-10 0 8 6 10 11 10z" />
+      <path fill="#2ea44f" d="M0.5 -1c0-8 6-10 11-10 0 8-6 10-11 10z" />
     </g>
   </g>
 </svg>
