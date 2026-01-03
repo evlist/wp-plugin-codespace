@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2025-2026 Eric van der Vlist <vdv@dyomedea.com>
 #
+# SPDX-License-Identifier: GPL-3.0-or-later OR MIT
+
 # graft.sh -- apply a "scion" devcontainer/.vscode into a "stock" repository
 #
 # Usage:
@@ -70,14 +74,14 @@ prompt_confirm() {
   local prompt="${1:-Proceed?}"
   local default="${2:-no}"
   if [ "$NON_INTERACTIVE" = "true" ]; then
-    debug "prompt_confirm: non-interactive => returning success"
-    return 0
+    debug "prompt_confirm: non-interactive => choose default"
+    if [[ "$default" =~ ^([yY][eE][sS])$ ]]; then return 0; else return 1; fi
   fi
   local suffix
   case "$default" in
-    yes|YES|Yes) suffix='[Yn]' ;;
-    no|NO|No)    suffix='[yN]' ;;
-    *) suffix='[yN]' ;;
+    yes|YES|Yes) suffix='[Y/n]' ;;
+    no|NO|No)    suffix='[y/N]' ;;
+    *) suffix='[y/N]' ;;
   esac
 
   local raw=""
@@ -704,21 +708,15 @@ export -f git
 AUTO_SHELL_NO_TOKEN=false
 if [ "$INITIAL_GITHUB_TOKEN_PRESENT" = true ] && [ "$PUSH_SUCCEEDED_WITHOUT_TOKEN" = true ]; then AUTO_SHELL_NO_TOKEN=true; fi
 
-if [ "$AUTO_SHELL_NO_TOKEN" = true ]; then
-  info "Opening a new shell in $STOCK_LOCAL_PATH with GITHUB_TOKEN removed (so git/gh will use your user credentials)..."
-  cd "$STOCK_LOCAL_PATH"
-  exec env -u GITHUB_TOKEN SHLVL=1 bash --login -i
-fi
-
-if [ "$NON_INTERACTIVE" != "true" ] && prompt_confirm "Open a new shell in $STOCK_LOCAL_PATH now?" no; then
-  if prompt_confirm "Open new shell without GITHUB_TOKEN?" no; then
-    info "Starting new shell without GITHUB_TOKEN..."
+if prompt_confirm "Open a new shell in $STOCK_LOCAL_PATH now?" no; then
+  if [ "$AUTO_SHELL_NO_TOKEN" = true ]; then
+    info "Opening a new shell in $STOCK_LOCAL_PATH with GITHUB_TOKEN removed (so git/gh will use your user credentials)..."
     cd "$STOCK_LOCAL_PATH"
     exec env -u GITHUB_TOKEN SHLVL=1 bash --login -i
   else
     info "Starting new shell at $STOCK_LOCAL_PATH..."
     cd "$STOCK_LOCAL_PATH"
-    exec SHLVL=1 bash --login -i
+    exec env SHLVL=1 bash --login -i
   fi
 fi
 
