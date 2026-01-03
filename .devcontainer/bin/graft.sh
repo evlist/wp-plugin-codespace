@@ -5,13 +5,17 @@
 # Usage:
 #   .devcontainer/bin/graft.sh [install|export|upgrade] [--scion <scion>] [--stock <stock>]
 #                               [--tmp <dir>] [--target-stock-branch <name>]
-#                               [--dry-run] [--non-interactive] [--push]
+#                               [--dry-run] [--non-interactive] [--push] [--debug]
 #
 set -euo pipefail
 
 info()  { printf '\033[1;34m[INFO]\033[0m %s\n' "$*" >&2; }
 warn()  { printf '\033[1;33m[WARN]\033[0m %s\n' "$*" >&2; }
 err()   { printf '\033[1;31m[ERROR]\033[0m %s\n' "$*" >&2; exit 1; }
+
+# ---- debug facility (minimal) ----
+DEBUG=false
+debug() { [ "${DEBUG:-false}" = "true" ] && printf '\033[1;35m[DEBUG]\033[0m %s\n' "$*" >&2 || true; }
 
 # ---- defaults ----
 DEFAULT_SCION="evlist/wp-plugin-codespace@stable"
@@ -26,7 +30,7 @@ PUSH_SUCCEEDED_WITHOUT_TOKEN=false
 INITIAL_GITHUB_TOKEN_PRESENT=false
 if [ -n "${GITHUB_TOKEN:-}" ]; then INITIAL_GITHUB_TOKEN_PRESENT=true; fi
 
-# ---- open stable prompt FD from /dev/tty (current shell) - restored to proven implementation ----
+# Open stable prompt FD from /dev/tty when available
 PROMPT_FD=""
 if [ -e /dev/tty ]; then
   # shellcheck disable=SC2034
@@ -41,46 +45,58 @@ _prompt_read() {
   local ans=""
   _prompt_print "$prompt "
   if [ -n "$PROMPT_FD" ]; then
-    read -r -u "$PROMPT_FD" ans || true
+    # try to read from PROMPT_FD; if that fails fall back to stdin
+    if ! read -r -u "$PROMPT_FD" ans 2>/dev/null; then
+      read -r ans || true
+      debug "_prompt_read: fell back to stdin, got: '$ans'"
+    else
+      debug "_prompt_read: read from PROMPT_FD, got: '$ans'"
+    fi
   else
     read -r ans || true
+    debug "_prompt_read: PROMPT_FD unset, read from stdin, got: '$ans'"
   fi
   ans="$(printf '%s' "$ans" | awk '{$1=$1;print}')"
   printf -v "$__out" "%s" "$ans"
 }
 
-# default NO single-char confirm
+# prompt_confirm(prompt_text, default)
+#   default: "yes" or "no"
+# The function prints the prompt with the canonical suffix:
+#   default=yes -> " ... [Y/n]"
+#   default=no  -> " ... [y/N]"
+# Returns 0 for yes, 1 for no.
 prompt_confirm() {
-  local prompt="${1:-Proceed? (y/N)}"
-  if [ "$NON_INTERACTIVE" = "true" ]; then return 0; fi
-  local ch=""
-  _prompt_print "$prompt "
-  if [ -n "$PROMPT_FD" ]; then
-    IFS= read -r -n1 -u "$PROMPT_FD" ch || true
-    printf '\n' >&2
-  else
-    IFS= read -r -n1 ch || true
-    printf '\n' >&2
+  local prompt="${1:-Proceed?}"
+  local default="${2:-no}"
+  if [ "$NON_INTERACTIVE" = "true" ]; then
+    debug "prompt_confirm: non-interactive => returning success"
+    return 0
   fi
-  ch="${ch:-}"
-  case "$ch" in [Yy]) return 0 ;; *) return 1 ;; esac
-}
+  local suffix
+  case "$default" in
+    yes|YES|Yes) suffix='[Y/n]' ;;
+    no|NO|No)    suffix='[y/N]' ;;
+    *) suffix='[y/N]' ;;
+  esac
 
-# default YES single-char confirm
-prompt_confirm_default_yes() {
-  local prompt="${1:-Proceed? (Y/n)}"
-  if [ "$NON_INTERACTIVE" = "true" ]; then return 0; fi
-  local ch=""
-  _prompt_print "$prompt "
-  if [ -n "$PROMPT_FD" ]; then
-    IFS= read -r -n1 -u "$PROMPT_FD" ch || true
-    printf '\n' >&2
-  else
-    IFS= read -r -n1 ch || true
-    printf '\n' >&2
-  fi
-  ch="${ch:-}"
-  case "$ch" in [Nn]) return 1 ;; *) return 0 ;; esac
+  local raw=""
+  _prompt_read "${prompt} ${suffix}" raw
+  printf '\n' >&2
+  debug "prompt_confirm: raw read -> '$raw' (default=${default})"
+
+  raw="${raw:-}"
+  local first="${raw:0:1}"
+  case "$first" in
+    [Yy]) return 0 ;;
+    [Nn]) return 1 ;;
+    '')  # empty => choose default
+      if [[ "$default" =~ ^([yY][eE][sS])$ ]]; then return 0; else return 1; fi
+      ;;
+    *)   # unknown input: treat as default=no for safety
+      if [[ "$default" =~ ^([yY][eE][sS])$ ]]; then return 0; else return 1; fi
+      ;;
+  esac
 }
 
 prompt_choice() {
@@ -159,7 +175,7 @@ clone_remote_into_tmp() {
       rm -rf "$dest"
       info "Removed existing $dest (non-interactive)"
     else
-      if prompt_confirm_default_yes "Destination $dest already exists. Remove and re-clone? [Y/n]"; then
+      if prompt_confirm "Destination $dest already exists. Remove and re-clone?" yes; then
         rm -rf "$dest"
         info "Removed existing $dest"
       else
@@ -405,7 +421,7 @@ push_branch() {
       warn "Non-interactive mode: not attempting force update. Manual resolution required."
       return 1
     fi
-    if prompt_confirm "Remote branch has conflicting commits. Attempt a safe force push (git push --force-with-lease)? [y/N]"; then
+    if prompt_confirm "Remote branch has conflicting commits. Attempt a safe force push (git push --force-with-lease)?" no; then
       if env -u GITHUB_TOKEN git -C "$repo_dir" -c credential.helper='!gh auth git-credential' push origin HEAD:"$branch" --force-with-lease; then
         info "Force-with-lease push succeeded."
         PUSH_SUCCEEDED_WITHOUT_TOKEN=true
@@ -447,12 +463,11 @@ EOF
 print_usage_and_exit() {
   cat >&2 <<'EOF'
 Usage: graft.sh [install|export|upgrade] [--scion <scion>] [--stock <stock>] [--tmp <dir>]
-                [--target-stock-branch <name>] [--dry-run] [--non-interactive] [--push]
+                [--target-stock-branch <name>] [--dry-run] [--non-interactive] [--push] [--debug]
 EOF
   exit 2
 }
 
-# parse verb
 VERB=""
 if [ "$#" -gt 0 ]; then
   case "$1" in install|export|upgrade) VERB="$1"; shift || true ;; esac
@@ -460,7 +475,6 @@ fi
 
 SCION_SPEC=""; STOCK_SPEC=""; TMP_BASE=""; TARGET_STOCK_BRANCH_ARG=""; PUSH_FLAG=false
 
-# parse flags
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --scion) SCION_SPEC="$2"; shift 2 ;;
@@ -470,12 +484,12 @@ while [ "$#" -gt 0 ]; do
     --dry-run) DRY_RUN=true; shift ;;
     --non-interactive) NON_INTERACTIVE=true; shift ;;
     --push) PUSH_FLAG=true; shift ;;
+    --debug) DEBUG=true; shift ;;
     -h|--help) print_usage_and_exit ;;
     *) err "Unknown arg: $1" ;;
   esac
 done
 
-# verbs
 if [ "$VERB" = "install" ]; then
   STOCK_SPEC="$PWD"
   [ -n "$SCION_SPEC" ] || SCION_SPEC="$DEFAULT_SCION"
@@ -502,24 +516,16 @@ if [ -z "$TMP_BASE" ]; then
   if [ -d "/workspaces" ]; then TMP_BASE="/workspaces"; else TMP_BASE="$(mktemp -d)"; fi
 fi
 
-# branch name ISO-like but safe for git refs (colons replaced by dashes)
-if [ -n "$TARGET_STOCK_BRANCH_ARG" ]; then
-  TARGET_STOCK_BRANCH="$TARGET_STOCK_BRANCH_ARG"
-else
-  TARGET_STOCK_BRANCH="${BRANCH_PREFIX}/$(date +%Y-%m-%dT%H-%M-%S)"
-fi
-
+if [ -n "$TARGET_STOCK_BRANCH_ARG" ]; then TARGET_STOCK_BRANCH="$TARGET_STOCK_BRANCH_ARG"; else TARGET_STOCK_BRANCH="${BRANCH_PREFIX}/$(date +%Y-%m-%dT%H-%M-%S)"; fi
 if [ -z "$SCION_SPEC" ]; then SCION_SPEC="$DEFAULT_SCION"; fi
 if [ -z "$SCION_SPEC" ] || [ -z "$STOCK_SPEC" ]; then err "Both --scion and --stock must be specified (or use a verb)"; fi
 
 detect_gh
 
-# parse scion
 if ! SCION_CANON="$(parse_repo_spec "$SCION_SPEC")"; then err "Could not parse scion spec: $SCION_SPEC"; fi
 SCION_REF="${REF:-}"; SCION_IS_LOCAL=false
 if [ -d "$SCION_SPEC" ]; then SCION_LOCAL_PATH="$(cd "$SCION_SPEC" && pwd)"; SCION_IS_LOCAL=true; else SCION_LOCAL_PATH=""; fi
 
-# parse stock
 if ! STOCK_CANON="$(parse_repo_spec "$STOCK_SPEC")"; then err "Could not parse stock spec: $STOCK_SPEC"; fi
 STOCK_REF="${REF:-}"; STOCK_IS_LOCAL=false
 if [ -d "$STOCK_SPEC" ]; then STOCK_LOCAL_PATH="$(cd "$STOCK_SPEC" && pwd)"; STOCK_IS_LOCAL=true; else STOCK_LOCAL_PATH=""; fi
@@ -531,6 +537,7 @@ info "Target stock branch: $TARGET_STOCK_BRANCH"
 info "Dry-run: $DRY_RUN"
 info "Non-interactive: $NON_INTERACTIVE"
 [ "$PUSH_FLAG" = "true" ] && info "--push requested"
+[ "${DEBUG:-false}" = "true" ] && debug "Debugging enabled"
 
 # If scion is local and dirty, mention it and offer to reclone
 if [ -n "${SCION_LOCAL_PATH:-}" ] && [ -d "$SCION_LOCAL_PATH/.git" ]; then
@@ -568,7 +575,7 @@ if ! git rev-parse --show-toplevel >/dev/null 2>&1; then err "Stock is not a git
 DEFAULT_BRANCH="$(git remote show origin | sed -n 's/  HEAD branch: //p' || true)"; [ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH="main"
 
 # branch creation (default YES)
-if [ "$NON_INTERACTIVE" = "true" ]; then CREATE_BRANCH=true; else if prompt_confirm_default_yes "Create and switch to new branch $TARGET_STOCK_BRANCH (off $DEFAULT_BRANCH)? [Y/n]"; then CREATE_BRANCH=true; else CREATE_BRANCH=false; fi; fi
+if [ "$NON_INTERACTIVE" = "true" ]; then CREATE_BRANCH=true; else if prompt_confirm "Create and switch to new branch $TARGET_STOCK_BRANCH (off $DEFAULT_BRANCH)?" yes; then CREATE_BRANCH=true; else CREATE_BRANCH=false; fi; fi
 
 if [ "$CREATE_BRANCH" = "true" ]; then
   git fetch origin >/dev/null 2>&1 || true
@@ -593,17 +600,21 @@ if [ "$FIRST_RUN" -eq 1 ] && [ "$DRY_RUN" != "true" ]; then
     ensure_gitignore_line() { local line="$1"; [ -f ".gitignore" ] || touch ".gitignore"; grep -Fxq "$line" ".gitignore" || printf '%s\n' "$line" >> ".gitignore"; }
     ensure_gitignore_line ".vscode/*.dist"; ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
   else
-    if prompt_confirm "Append recommended .gitignore entries for graft baselines and temp dirs? [Y/n]"; then
+    if prompt_confirm "Append recommended .gitignore entries for graft baselines and temp dirs?" yes; then
       ensure_gitignore_line() { local line="$1"; [ -f ".gitignore" ] || touch ".gitignore"; grep -Fxq "$line" ".gitignore" || printf '%s\n' "$line" >> ".gitignore"; }
       ensure_gitignore_line ".vscode/*.dist"; ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
       info ".gitignore updated with recommended entries."
     fi
   fi
   if [ "$NON_INTERACTIVE" != "true" ] && [ -f "README.md" ]; then
-    if prompt_confirm "Insert Codespaces badge & graft credit into README.md? [Y/n]"; then
+    debug "README exists: $( [ -f README.md ] && echo yes || echo no )"
+    if prompt_confirm "Insert Codespaces badge & graft credit into README.md?" yes; then
       origin="$(git config --get remote.origin.url || true)"
+      debug "origin: '$origin'"
       if [[ "$origin" =~ github.com ]]; then owner_repo="${origin#*github.com[:/]}"; owner_repo="${owner_repo%.git}"; else owner_repo="${GITHUB_REPOSITORY:-}"; fi
+      debug "owner_repo: '$owner_repo'"
       branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
+      debug "branch: '$branch'"
       badge_line="[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=${branch}&repo=${owner_repo})"
       credit_line="Codespace created by the scion graft."
       tmp="$(mktemp)"; { printf "%s\n%s\n\n" "$badge_line" "$credit_line"; cat "README.md"; } > "$tmp"; mv "$tmp" "README.md"
@@ -631,18 +642,24 @@ fi
 # determine branch to push
 if [ "$CREATE_BRANCH" = "true" ]; then BRANCH_TO_PUSH="$TARGET_STOCK_BRANCH"; else BRANCH_TO_PUSH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")"; fi
 
-# push prompt default YES
+# push decision (default yes interactive)
 DO_PUSH=false
-if [ "$PUSH_FLAG" = "true" ]; then DO_PUSH=true; else
-  if [ "$NON_INTERACTIVE" = "true" ]; then DO_PUSH=false; else
-    if prompt_confirm_default_yes "Push branch $BRANCH_TO_PUSH to origin now? [Y/n]"; then DO_PUSH=true; else DO_PUSH=false; fi
+if [ "$PUSH_FLAG" = "true" ]; then
+  DO_PUSH=true
+else
+  if [ "$NON_INTERACTIVE" = "true" ]; then
+    DO_PUSH=false
+  else
+    if prompt_confirm "Push branch $BRANCH_TO_PUSH to origin now?" yes; then DO_PUSH=true; else DO_PUSH=false; fi
   fi
 fi
 
 if [ "$DO_PUSH" = "true" ]; then
-  if [ "$DRY_RUN" = "true" ]; then info "DRY RUN: skipping push"
+  if [ "$DRY_RUN" = "true" ]; then
+    info "DRY RUN: skipping push"
   else
-    if push_branch "$STOCK_LOCAL_PATH" "$BRANCH_TO_PUSH"; then info "Push succeeded."
+    if push_branch "$STOCK_LOCAL_PATH" "$BRANCH_TO_PUSH"; then
+      info "Push succeeded."
     else
       warn "Push failed."
       if [ "${GH_AVAILABLE}" = "true" ]; then
@@ -653,9 +670,13 @@ if [ "$DO_PUSH" = "true" ]; then
           perms="$(gh api -H "Accept: application/vnd.github+json" "/repos/${STOCK_CANON}" --jq '.permissions' 2>/dev/null || true)"
           info "Repository permissions (raw): $perms"
         fi
-        if prompt_confirm "Run 'gh auth login --web' now to (re)authenticate? [y/N]"; then
+        if prompt_confirm "Run 'gh auth login --web' now to (re)authenticate?" no; then
           env -u GITHUB_TOKEN gh auth login --web || warn "gh auth login failed or cancelled."
-          if push_branch "$STOCK_LOCAL_PATH" "$BRANCH_TO_PUSH"; then info "Push succeeded after gh auth."; else warn "Push still failed after re-authentication."; fi
+          if push_branch "$STOCK_LOCAL_PATH" "$BRANCH_TO_PUSH"; then
+            info "Push succeeded after gh auth."
+          else
+            warn "Push still failed after re-authentication."
+          fi
         fi
       fi
     fi
@@ -667,11 +688,12 @@ fi
 info "Graft finished. Stock is at: $STOCK_LOCAL_PATH"
 [ "$DRY_RUN" = "true" ] && info "Dry-run mode — no changes were pushed or recorded (except dry-run outputs)."
 
-# prepare a git() function exported into the spawned shell (no repo files written)
+# expose a git() wrapper (export function) for spawned interactive shells (no repo files written)
 git() { command git -c credential.helper='!gh auth git-credential' "$@"; }
 export -f git
 
-# auto-open shell without GITHUB_TOKEN if we had to unset it to push
+# If we earlier had an installation GITHUB_TOKEN and had to unset it to push,
+# open a shell with GITHUB_TOKEN removed so git/gh use your user credentials.
 AUTO_SHELL_NO_TOKEN=false
 if [ "$INITIAL_GITHUB_TOKEN_PRESENT" = true ] && [ "$PUSH_SUCCEEDED_WITHOUT_TOKEN" = true ]; then AUTO_SHELL_NO_TOKEN=true; fi
 
@@ -681,7 +703,7 @@ if [ "$AUTO_SHELL_NO_TOKEN" = true ]; then
   exec env -u GITHUB_TOKEN SHLVL=1 bash --login -i
 fi
 
-if [ "$NON_INTERACTIVE" != "true" ] && prompt_confirm "Open a new shell in $STOCK_LOCAL_PATH now? [y/N]"; then
+if [ "$NON_INTERACTIVE" != "true" ] && prompt_confirm "Open a new shell in $STOCK_LOCAL_PATH now?" no; then
   _prompt_read "Open new shell without GITHUB_TOKEN? [y/N]:" shellopt
   shellopt="${shellopt:-N}"
   cd "$STOCK_LOCAL_PATH"
