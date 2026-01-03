@@ -143,6 +143,8 @@ This project is dual-licensed:
 
 You may choose either license. See the [LICENSE](LICENSE) file and the full texts in the LICENSES/ directory.
 
+### Note to self
+
 To update the license year:
 ```
 $ reuse annotate -r --year "2025-2026" --copyright "Eric van der Vlist <vdv@dyomedea.com>" --license "GPL-3.0-or-later OR MIT" --merge-copyrights --fallback-dot-license .
