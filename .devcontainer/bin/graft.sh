@@ -22,7 +22,7 @@ DEBUG=false
 debug() { [ "${DEBUG:-false}" = "true" ] && printf '\033[1;35m[DEBUG]\033[0m %s\n' "$*" >&2 || true; }
 
 # ---- defaults ----
-DEFAULT_SCION="evlist/wp-plugin-codespace@stable"
+UPSTREAM_SCION="${UPSTREAM_SCION:evlist/codespaces-grafting@stable}"
 NON_INTERACTIVE=false
 DRY_RUN=false
 TMP_BASE_DEFAULT="/workspaces"
@@ -500,7 +500,7 @@ done
 
 if [ "$VERB" = "install" ]; then
   STOCK_SPEC="$PWD"
-  [ -n "$SCION_SPEC" ] || SCION_SPEC="$DEFAULT_SCION"
+  [ -n "$SCION_SPEC" ] || SCION_SPEC="$UPSTREAM_SCION"
   [ -z "$TMP_BASE" ] && TMP_BASE="$(mktemp -d)"
 fi
 if [ "$VERB" = "export" ]; then
@@ -525,7 +525,7 @@ if [ -z "$TMP_BASE" ]; then
 fi
 
 if [ -n "$TARGET_STOCK_BRANCH_ARG" ]; then TARGET_STOCK_BRANCH="$TARGET_STOCK_BRANCH_ARG"; else TARGET_STOCK_BRANCH="${BRANCH_PREFIX}/$(date +%Y-%m-%dT%H-%M-%S)"; fi
-if [ -z "$SCION_SPEC" ]; then SCION_SPEC="$DEFAULT_SCION"; fi
+if [ -z "$SCION_SPEC" ]; then SCION_SPEC="$UPSTREAM_SCION"; fi
 if [ -z "$SCION_SPEC" ] || [ -z "$STOCK_SPEC" ]; then err "Both --scion and --stock must be specified (or use a verb)"; fi
 
 detect_gh

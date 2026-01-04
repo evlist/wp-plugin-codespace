@@ -6,8 +6,8 @@
 
 /**
  * Plugin Name: Local Hello World
- * Plugin URI: https://github.com/evlist/wp-plugin-codespace
- * Description: A sample plugin demonstrating WordPress plugin development features including shortcodes, REST API, admin notices, and WP-CLI commands.
+ * Plugin URI: https://github.com/evlist/codespaces-grafting
+ * Description: A sample plugin for codespaces-grafting, a lightweight, shareable "live Codespace" / devcontainer scaffold, demonstrating WordPress plugin development features including shortcodes, REST API, admin notices, and WP-CLI commands.
  * Version: 1.0.0
  * Author: Eric van der Vlist
  * Author URI: https://github.com/evlist
