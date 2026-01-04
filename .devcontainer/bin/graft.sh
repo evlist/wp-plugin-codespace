@@ -22,7 +22,7 @@ DEBUG=false
 debug() { [ "${DEBUG:-false}" = "true" ] && printf '\033[1;35m[DEBUG]\033[0m %s\n' "$*" >&2 || true; }
 
 # ---- defaults ----
-UPSTREAM_SCION="${UPSTREAM_SCION:evlist/codespaces-grafting@stable}"
+UPSTREAM_SCION="${UPSTREAM_SCION:-evlist/codespaces-grafting@stable}"
 NON_INTERACTIVE=false
 DRY_RUN=false
 TMP_BASE_DEFAULT="/workspaces"
