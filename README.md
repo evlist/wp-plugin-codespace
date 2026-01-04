@@ -6,133 +6,58 @@ SPDX-License-Identifier: GPL-3.0-or-later OR MIT
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=evlist/wp-plugin-codespace)
 
+<img src=".devcontainer/assets/icon.svg" alt="wp-plugin-codespace logo" width="256" style="float:right" />
+
 # wp-plugin-codespace
 
-🧰 A lightweight, shareable Codespaces/devcontainer scaffold for WordPress plugin authors.
+A lightweight, shareable "live Codespace" / devcontainer scaffold for WordPress plugin authors — clone, open a Codespace and start coding immediately.
 
-This repository makes it straightforward for WordPress plugin authors to provide a zero‑install, ready‑to‑use development environment. The devcontainer is preconfigured with PHP, WP‑CLI, a webserver and editor settings so contributors, contractors, and reviewers can open a Codespace (or use a local devcontainer) and start working immediately.
+🌱 Quick metaphor (attention)  
+This repo is to Codespaces what grafting is to gardening: the scion (this Codespace template) can be grafted into your existing repository (the stock) to give it an instant, reproducible development environment.
 
-## 🔎 Why this repo exists
-- Problem: onboarding for WordPress plugin development often requires installing PHP, a webserver, a database, extensions and bootstrapping WordPress locally.
-- Goal: remove that friction — clone, open a Codespace, and start coding.
+Why use this
+- ✨ Live Codespace: click the badge to create a Codespace from the template, export the scion into your repo and start coding without local setup.
+- ⚙️ Minimal & conservative: provides PHP, WP‑CLI and common tooling while preserving your project/editor settings.
+- 🔁 Easy updates: graft.sh (installer/updater) lets you adopt template improvements without losing local edits.
 
-## 👥 Who should use this
-This template is intended for:
-- WordPress plugin authors and maintainers who want a reproducible, shareable development environment.
-- People who need to demo or test a plugin quickly without asking contributors to set up local infrastructure.
-- Teams that want an easy way to adopt template improvements via a simple updater.
+Terminology (short)
+- scion — this upstream template (.devcontainer/.vscode)
+- stock — your plugin repository that receives the scion
+- graft — the installer/updater operation (graft.sh) that applies the scion into stock
 
-## ✨ What this provides
-- A compact `.devcontainer/` and a required `.vscode/` directory preconfigured for plugin development (think of `.vscode/` as template configuration similar to `/etc` on a system).
-- A single installer/updater script to add or refresh the devcontainer and editor snippets in your plugin repo.
-- A convention for Codespace-specific configuration: copy `.devcontainer/.cs_env` into your workspace as `./.cs_env` and edit values as needed.
-- Useful CLI tools installed in the Codespace, such as `gh` (GitHub CLI) and `reuse`.
-- Conservative update semantics (baseline `.orig`, upstream samples `.dist`, backups `.bak.*`) that preserve local edits.
-
-## ⚙️ Main principles
-- Track only the minimal configuration required for a reproducible dev environment.
-- Keep secrets out of git; the template provides `.devcontainer/.cs_env` which you can copy to `./.cs_env` and edit locally or provide values via Codespaces secrets.
-- Use a single script as both installer and updater so repositories can stay in sync with the template without losing local customizations.
-- Make updates explicit and reversible with baselines, samples and backups.
-
-## 🚀 Quick install (recommended, minimal)
-1. Download the installer to your workstation (do not add it to the repo):
-   ```bash
-   curl -L -o ~/Downloads/install.sh \
-     https://raw.githubusercontent.com/evlist/wp-plugin-codespace/main/.devcontainer/bin/install.sh
-   chmod +x ~/Downloads/install.sh
-   ```
-2. From a local, up‑to‑date clone of your plugin repository:
-   ```bash
-   cd /path/to/your-plugin-repo
-   bash ~/Downloads/install.sh
-   ```
-   - On first run the script acts as an installer and will guide you through initial choices.
-   - On subsequent runs the same script acts as the updater.
-3. Inspect the changes, then commit and push:
-   ```bash
-   git add .
-   git commit -m "Add Codespace/devcontainer"
-   git push
-   ```
-4. Open your repository in a GitHub Codespace or locally with Remote - Containers.
-
-## 🔁 Updater (inside Codespace)
-- The Codespace image exposes two convenient aliases:
-  - `cs_install` — run the installer (initial setup).
-  - `cs_update`  — run the updater (same script, named for clarity).
-- Both aliases point to the same `bin/install.sh` script and simplify interactive updates from inside the Codespace.
-
-## 📝 Environment files (manual approach)
-- We keep Codespace-specific variables separate from project `.env` files.
-- The template ships `.devcontainer/.cs_env`. If you want Codespace-specific values, copy it to the workspace root and edit:
+Quick ways to get started
+- Easiest (no local install): click the Codespaces badge above → create a Codespace → export the scion into your repository using the in‑Codespace helper UI.
+- From a workstation (script):
   ```bash
-  cp .devcontainer/.cs_env ./.cs_env
+  curl -L -o ~/Downloads/graft.sh \
+    https://raw.githubusercontent.com/evlist/wp-plugin-codespace/main/.devcontainer/bin/graft.sh
+  chmod +x ~/Downloads/graft.sh
+  cd /path/to/your-plugin-repo
+  bash ~/Downloads/graft.sh
   ```
-- Alternatively, provide values using Codespaces repository secrets.
-- The installer/updater does not automatically create or modify `./.cs_env` or project `.env`; creating or updating `./.cs_env` is intentionally manual.
+  Inspect, commit and push the changes afterward.
 
-## 🧪 Dry-run and automation
-- Preview changes without modifying files:
-  ```bash
-  bash ~/Downloads/install.sh --dry-run
-  ```
-- Choose an upstream ref: `--ref <branch-or-tag>` (default: `stable`).
-- Run non-interactively: `--yes`.
-- Use `--dry-run` in CI to detect issues (for example, accidental ignores) before merging.
+Docs location
+- 📚 Short and maintainer docs ship with the scion at `.devcontainer/docs/` so detailed guidance travels with the template and does not pollute stock repos.
 
-## 📝 Recommended .gitignore hints
-Keep secrets and updater artifacts out of git:
-```
-.env
-.env.*
-.vscode/*.dist
-.vscode/*.bak.*
-.devcontainer/tmp/
-.devcontainer/var/
-```
-
-## 📁 Project Structure
-
+Updated project structure (high level)
 ```
 .
-├── .cs_env                        # Local environment variables (workspace-local; copy from .devcontainer/.cs_env if needed)
-├── bootstrap-local.sh             # Local bootstrap script
-├── .devcontainer/
-│   ├── devcontainer.json          # VS Code devcontainer configuration
-│   ├── docker-compose.yml         # Docker Compose services definition
-│   ├── Dockerfile                 # WordPress container with WP-CLI
-│   ├── README.md                  # Technical notes
-│   ├── .cs_env                    # Template environment variables (copy to workspace root to customize)
+├── README.md
+├── .devcontainer/                # scion (grafted into stock)
+│   ├── README.md                 # scion maintainer notes (this repo)
+│   ├── docs/                     # extended scion docs (maintainers)
+│   ├── devcontainer.json
+│   ├── Dockerfile
 │   └── bin/
-│       ├── bootstrap-wp.sh        # Bootstrap: DB, Apache, WP core, symlinks, calls local bootstrap if present
-│       ├── install.sh             # Install and update script
-│       └── merge-env.sh           # Merge .cs_env files
-├── .vscode/
-│   ├── launch.json                # Static PHP debug config (single mapping)
-│   └── intelephense-stubs/
-│       └── wp-cli.php             # Editor-only stub for WP-CLI
-└── plugins-src/
-    └── hello-world/               # Sample plugin directory
-        ├── hello-world.php
-        └── README.md
+│       └── graft.sh              # installer/updater (graft)
+├── .vscode/                      # editor templates & stubs (managed)
+└── plugins-src/                  # example/sample plugin(s)
 ```
 
----
-
-## Credits
-
-This plugin was inspired by examples and guidance from:
-
-- [WordPress Plugin Developer Handbook](https://developer.wordpress.org/plugins/)
-- [WordPress REST API Handbook](https://developer.wordpress.org/rest-api/)
-- [Admin Bar API (`admin_bar_menu` / `add_node`)](https://developer.wordpress.org/reference/hooks/admin_bar_menu/)
-- [Admin Notices (`admin_notices`)](https://developer.wordpress.org/reference/hooks/admin_notices/)
-- [WP‑CLI Handbook and Commands Cookbook](https://make.wordpress.org/cli/handbook/) · [Commands cookbook](https://make.wordpress.org/cli/handbook/commands-cookbook/)
-- [Hello Dolly plugin](https://wordpress.org/plugins/hello-dolly/) for a minimal plugin structure
-- [WordPress Coding Standards](https://github.com/WordPress/WordPress-Coding-Standards)
-
-Developed in GitHub Codespaces with assistance from GitHub Copilot.
+Want more?
+- Maintainers: see `.devcontainer/README.md` inside the scion for upgrade semantics and scion structure.
+- Advanced docs (hooks, customization): planned under `.devcontainer/docs/` and `docs/` in future updates.
 
 ## License
 
@@ -141,11 +66,4 @@ This project is dual-licensed:
 - GPL-3.0-or-later OR
 - MIT
 
-You may choose either license. See the [LICENSE](LICENSE) file and the full texts in the LICENSES/ directory.
-
-### Note to self
-
-To update the license year:
-```
-$ reuse annotate -r --year "2025-2026" --copyright "Eric van der Vlist <vdv@dyomedea.com>" --license "GPL-3.0-or-later OR MIT" --merge-copyrights --fallback-dot-license .
-```
+You may choose either license. See the LICENSE file and LICENSES/ directory for full texts.
