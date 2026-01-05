@@ -635,11 +635,11 @@ if [ "$FIRST_RUN" -eq 1 ] && [ "$DRY_RUN" != "true" ]; then
   if [ "$NON_INTERACTIVE" = "true" ]; then
     info "Non-interactive first-run: automatically appending recommended .gitignore entries."
     ensure_gitignore_line() { local line="$1"; [ -f ".gitignore" ] || touch ".gitignore"; grep -Fxq "$line" ".gitignore" || printf '%s\n' "$line" >> ".gitignore"; }
-    ensure_gitignore_line ".vscode/*.dist"; ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
+    ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
   else
     if prompt_confirm "Append recommended .gitignore entries for graft scion snapshots and temp dirs?" yes; then
       ensure_gitignore_line() { local line="$1"; [ -f ".gitignore" ] || touch ".gitignore"; grep -Fxq "$line" ".gitignore" || printf '%s\n' "$line" >> ".gitignore"; }
-      ensure_gitignore_line ".vscode/*.dist"; ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
+      ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
       info ".gitignore updated with recommended entries."
     fi
   fi
