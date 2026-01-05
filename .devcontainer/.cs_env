@@ -16,6 +16,3 @@ PLUGIN_DIR=
 
 # Additional Plugins (comma-separated)
 WP_PLUGINS=
-
-# Upstream scion
-UPSTREAM_SCION=evlist/codespaces-grafting@stable

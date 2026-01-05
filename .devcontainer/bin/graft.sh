@@ -22,7 +22,6 @@ DEBUG=false
 debug() { [ "${DEBUG:-false}" = "true" ] && printf '\033[1;35m[DEBUG]\033[0m %s\n' "$*" >&2 || true; }
 
 # ---- defaults ----
-UPSTREAM_SCION="${UPSTREAM_SCION:-evlist/codespaces-grafting@stable}"
 NON_INTERACTIVE=false
 DRY_RUN=false
 TMP_BASE_DEFAULT="/workspaces"
@@ -179,8 +178,8 @@ resolve_to_canonical_id() {
     origin_url="$(git -C "$spec" config --get remote.origin.url 2>/dev/null || true)"
     if [ -n "$origin_url" ]; then
       if origin_canon="$(parse_repo_spec "$origin_url")"; then
-        debug "Resolved '$spec' to canonical ID: github:$origin_canon"
-        printf 'github.com:%s\n' "$origin_canon"
+        debug "Resolved '$spec' to canonical ID: $origin_canon"
+        printf '%s\n' "$origin_canon"
         return 0
       fi
     fi
@@ -553,7 +552,15 @@ if [ -z "$TMP_BASE" ]; then
 fi
 
 if [ -n "$TARGET_STOCK_BRANCH_ARG" ]; then TARGET_STOCK_BRANCH="$TARGET_STOCK_BRANCH_ARG"; else TARGET_STOCK_BRANCH="${BRANCH_PREFIX}/$(date +%Y-%m-%dT%H-%M-%S)"; fi
-if [ -z "$SCION_SPEC" ]; then SCION_SPEC="$UPSTREAM_SCION"; fi
+if [ -z "$SCION_SPEC" ]; then
+  # Try to read default scion from .devcontainer/.cs_env.d/graft.env
+  if [ -f ".devcontainer/.cs_env.d/graft.env" ]; then
+    source ".devcontainer/.cs_env.d/graft.env"
+    SCION_SPEC="${SCION_ID:-}"
+    [ -n "${SCION_REF:-}" ] && SCION_SPEC="${SCION_SPEC}@${SCION_REF}"
+  fi
+  [ -z "$SCION_SPEC" ] && err "Cannot determine scion; supply --scion"
+fi
 if [ -z "$SCION_SPEC" ] || [ -z "$STOCK_SPEC" ]; then err "Both --scion and --stock must be specified (or use a verb)"; fi
 
 detect_gh
@@ -582,7 +589,6 @@ if [ -n "${SCION_LOCAL_PATH:-}" ] && [ -d "$SCION_LOCAL_PATH/.git" ]; then
   if [ "$NON_INTERACTIVE" != "true" ]; then
     if prompt_confirm "Scion is a local git repo at $SCION_LOCAL_PATH${scion_dirty_msg}. Re-clone scion from its origin remote into a clean tmp dir before graft?" no; then
       # Use resolve_to_canonical_id instead of manual conversion
-      local origin_canon
       origin_canon="$(resolve_to_canonical_id "$SCION_LOCAL_PATH")"
       if [ "$origin_canon" != "$SCION_LOCAL_PATH" ]; then
         info "Re-cloning scion from $origin_canon into tmp for a clean copy..."
@@ -594,7 +600,6 @@ if [ -n "${SCION_LOCAL_PATH:-}" ] && [ -d "$SCION_LOCAL_PATH/.git" ]; then
     fi
   else
     # non-interactive default: reclone if origin exists
-    local origin_canon
     origin_canon="$(resolve_to_canonical_id "$SCION_LOCAL_PATH")"
     if [ "$origin_canon" != "$SCION_LOCAL_PATH" ]; then
       info "Non-interactive: re-cloning scion from origin into tmp..."
@@ -631,33 +636,50 @@ preflight_gitignore_from_scion "$SCION_LOCAL_PATH"
 apply_devcontainer "$SCION_LOCAL_PATH" "$STOCK_LOCAL_PATH"
 apply_vscode_baseline "$SCION_LOCAL_PATH" "$STOCK_LOCAL_PATH"
 
-# first-run guidance and optional README insertion (interactive)
-if [ -f "$STOCK_LOCAL_PATH/.devcontainer/.cs_env.d/graft.env" ]; then FIRST_RUN=0; else FIRST_RUN=1; fi
-if [ "$FIRST_RUN" -eq 1 ] && [ "$DRY_RUN" != "true" ]; then
-  if [ "$NON_INTERACTIVE" = "true" ]; then
-    info "Non-interactive first-run: automatically appending recommended .gitignore entries."
-    ensure_gitignore_line() { local line="$1"; [ -f ".gitignore" ] || touch ".gitignore"; grep -Fxq "$line" ".gitignore" || printf '%s\n' "$line" >> ".gitignore"; }
-    ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
-  else
-    if prompt_confirm "Append recommended .gitignore entries for graft scion snapshots and temp dirs?" yes; then
+# optional setup guidance (interactive)
+if [ "$DRY_RUN" != "true" ]; then
+  # Check if recommended .gitignore entries are missing
+  gitignore_missing=false
+  [ -f ".gitignore" ] || gitignore_missing=true
+  if [ "$gitignore_missing" = "false" ]; then
+    grep -Fxq ".vscode/*.bak.*" ".gitignore" || gitignore_missing=true
+    grep -Fxq ".devcontainer/tmp/" ".gitignore" || gitignore_missing=true
+    grep -Fxq ".devcontainer/var/" ".gitignore" || gitignore_missing=true
+  fi
+  
+  if [ "$gitignore_missing" = "true" ]; then
+    if [ "$NON_INTERACTIVE" = "true" ]; then
+      info "Non-interactive mode: automatically appending recommended .gitignore entries."
       ensure_gitignore_line() { local line="$1"; [ -f ".gitignore" ] || touch ".gitignore"; grep -Fxq "$line" ".gitignore" || printf '%s\n' "$line" >> ".gitignore"; }
       ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
-      info ".gitignore updated with recommended entries."
+    else
+      if prompt_confirm "Append recommended .gitignore entries for graft scion snapshots and temp dirs?" yes; then
+        ensure_gitignore_line() { local line="$1"; [ -f ".gitignore" ] || touch ".gitignore"; grep -Fxq "$line" ".gitignore" || printf '%s\n' "$line" >> ".gitignore"; }
+        ensure_gitignore_line ".vscode/*.bak.*"; ensure_gitignore_line ".devcontainer/tmp/"; ensure_gitignore_line ".devcontainer/var/"
+        info ".gitignore updated with recommended entries."
+      fi
     fi
   fi
+  
+  # Check if README.md exists and lacks Codespaces badge
   if [ "$NON_INTERACTIVE" != "true" ] && [ -f "README.md" ]; then
-    debug "README exists: $( [ -f README.md ] && echo yes || echo no )"
-    if prompt_confirm "Insert Codespaces badge & graft credit into README.md?" yes; then
-      origin="$(git config --get remote.origin.url || true)"
-      debug "origin: '$origin'"
-      if [[ "$origin" =~ github.com ]]; then owner_repo="${origin#*github.com[:/]}"; owner_repo="${owner_repo%.git}"; else owner_repo="${GITHUB_REPOSITORY:-}"; fi
-      debug "owner_repo: '$owner_repo'"
-      branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
-      debug "branch: '$branch'"
-      badge_line="[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=${branch}&repo=${owner_repo})"
-      credit_line='<img src=".devcontainer/assets/icon.svg" width="64" height="64" alt="cs-grafting" />Codespace created with [evlist/codespaces-grafting](https://github.com/evlist/codespaces-grafting) -'
-      tmp="$(mktemp)"; { printf "%s\n%s\n\n" "$credit_line" "$badge_line" ; cat "README.md"; } > "$tmp"; mv "$tmp" "README.md"
-      info "Inserted Codespaces badge and credit into README.md"
+    has_codespaces_badge=false
+    grep -q "github.com/codespaces" "README.md" && has_codespaces_badge=true
+    
+    if [ "$has_codespaces_badge" = "false" ]; then
+      debug "README exists but no Codespaces badge found"
+      if prompt_confirm "Insert Codespaces badge & graft credit into README.md?" yes; then
+        origin="$(git config --get remote.origin.url || true)"
+        debug "origin: '$origin'"
+        if [[ "$origin" =~ github.com ]]; then owner_repo="${origin#*github.com[:/]}"; owner_repo="${owner_repo%.git}"; else owner_repo="${GITHUB_REPOSITORY:-}"; fi
+        debug "owner_repo: '$owner_repo'"
+        branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
+        debug "branch: '$branch'"
+        badge_line="[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=${branch}&repo=${owner_repo})"
+        credit_line='<img src=".devcontainer/assets/icon.svg" width="64" height="64" alt="cs-grafting" />Codespace created with [evlist/codespaces-grafting](https://github.com/evlist/codespaces-grafting) -'
+        tmp="$(mktemp)"; { printf "%s\n%s\n\n" "$credit_line" "$badge_line" ; cat "README.md"; } > "$tmp"; mv "$tmp" "README.md"
+        info "Inserted Codespaces badge and credit into README.md"
+      fi
     fi
   fi
 fi
