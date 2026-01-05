@@ -64,7 +64,7 @@ Project structure (high level)
 │   │   └── graft.sh              # installer/updater (graft)
 │   ├── sbin/
 │   │   ├── bootstrap.sh          # container startup script
-│   │   ├── bootstrap.sh.d/       # bootstrap hooks (sourced in order)
+│   │   ├── bootstrap.sh.d/       # modular bootstrap hooks (Debian .d style)
 │   │   └── merge-env.sh          # merges .cs_env and .cs_env.d/*
 │   ├── tmp/                      # temporary files (gitignored)
 │   ├── var/                      # runtime data (gitignored)
@@ -72,6 +72,12 @@ Project structure (high level)
 ├── .vscode/                      # editor templates & stubs (managed)
 └── plugins-src/                  # example/sample plugin(s) (WP-focused examples)
 ```
+
+The scion uses **Debian-style `.d` directories** for modular configuration:
+- **`.cs_env.d/`**: Environment variable overrides loaded in alphabetical order
+- **`bootstrap.sh.d/`**: Startup hooks (10-aliases.sh, 20-plugins.sh, etc.) sourced sequentially
+
+This makes customization easy: create `.local.sh` hooks (e.g., `25-themes.local.sh` for themes, `40-import.local.sh` for WP-CLI commands) that won't be overwritten during upgrades. See the [FAQ](.devcontainer/docs/FAQ.md#8-customization) for examples.
 
 Want more?
 - Maintainers: see [.devcontainer/README.md](.devcontainer/README.md) for upgrade semantics and structure

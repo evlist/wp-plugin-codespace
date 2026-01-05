@@ -155,6 +155,72 @@ Common commands
 
 ---
 
+## Bootstrap customization (bootstrap.sh.d/)
+
+The scion uses a modular bootstrap system inspired by Debian's `.d` directories. During container startup, `bootstrap.sh` sources all scripts in `bootstrap.sh.d/` in alphabetical order.
+
+### Creating custom bootstrap hooks
+
+1. **Create a numbered script** in `.devcontainer/sbin/bootstrap.sh.d/`:
+   - `10-*.sh`: Shell environment setup (aliases, functions) — provided by scion
+   - `20-*.sh`: WordPress extensions (plugins, themes) — provided by scion
+   - `30-*.sh`: Content import and configuration
+   - `50-*.sh`: Final tweaks and customization
+   - **Use `.local.sh` suffix** for your customizations to prevent them from being overwritten during upgrades
+
+2. **Make it executable**:
+   ```bash
+   chmod +x .devcontainer/sbin/bootstrap.sh.d/25-themes.local.sh
+   ```
+
+3. **Scripts inherit context** from `bootstrap.sh`:
+   - All environment variables (`$PLUGIN_SLUG`, `$WP_PLUGINS`, `$DOCROOT`, etc.)
+   - Helper functions (`log()`, `die()`, `wp` alias)
+   - Full WordPress environment
+
+### Example: Theme development hook
+
+Create `.devcontainer/sbin/bootstrap.sh.d/25-themes.local.sh` (note the `.local.sh` suffix):
+
+```bash
+#!/usr/bin/env bash
+log "Linking workspace theme..."
+THEME_SLUG="${THEME_SLUG:-my-theme}"
+THEME_DIR="${THEME_DIR:-themes/my-theme}"
+
+sudo mkdir -p "$DOCROOT/wp-content/themes"
+if [ -d "$WORKSPACE/$THEME_DIR" ]; then
+    sudo ln -sfn "$WORKSPACE/$THEME_DIR" "$DOCROOT/wp-content/themes/$THEME_SLUG"
+    wp theme activate "$THEME_SLUG"
+fi
+```
+
+Add configuration to `.devcontainer/.cs_env.d/theme.local.env`:
+```bash
+THEME_SLUG="my-theme"
+THEME_DIR="themes/my-theme"
+```
+
+### Existing hooks (provided by scion)
+
+- **10-aliases.sh**: Defines shell aliases (`graft`, `upgrade-scion`, `export-scion`) — **managed by scion**
+- **20-plugins.sh**: Links workspace plugin, installs additional plugins from `WP_PLUGINS` — **managed by scion**
+
+**Important**: Don't modify or delete scion-provided hooks (files without `.local` in their name). They will be overwritten during upgrades.
+
+### Disabling scion hooks
+
+To disable plugin installation (20-plugins.sh), don't modify the script. Instead:
+- Leave `PLUGIN_SLUG`, `PLUGIN_DIR`, and `WP_PLUGINS` empty in your environment files
+- The hook will run but do nothing when these variables are undefined
+
+For your own `.local.sh` hooks, you can disable them by:
+```bash
+mv bootstrap.sh.d/40-custom.local.sh bootstrap.sh.d/40-custom.local.sh.disabled
+```
+
+---
+
 ## Troubleshooting
 
 Common issues and remedies

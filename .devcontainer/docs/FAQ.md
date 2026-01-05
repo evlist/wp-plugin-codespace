@@ -218,4 +218,81 @@ Use `--non-interactive` to skip prompts and speed up automated runs.
 
 ---
 
+## 8. Customization
+
+### Q: How do I customize the bootstrap process?
+**A:** The scion uses Debian-style `.d` directories for modular configuration:
+
+**Environment variables** (`.devcontainer/.cs_env.d/`):
+- Base configuration in `.cs_env` is managed by the scion
+- Create `.cs_env.d/*.local.env` files to override defaults (e.g., `custom.local.env`, `theme.local.env`)
+- Files sourced in alphabetical order after base `.cs_env`
+- The `.local` suffix excludes them from sync during upgrades
+
+**Bootstrap hooks** (`.devcontainer/sbin/bootstrap.sh.d/`):
+- Scion-provided hooks: `10-aliases.sh`, `20-plugins.sh` (managed, will be overwritten during upgrades)
+- Your custom hooks: Create `*.local.sh` files (e.g., `25-themes.local.sh`, `40-custom.local.sh`)
+- All hooks sourced in alphabetical order during container startup
+- Custom `.local.sh` hooks are excluded from sync during upgrades
+- Inherit all variables and functions from `bootstrap.sh`
+
+**Naming convention:**
+- `10-*.sh`: Shell environment (scion-managed: 10-aliases.sh)
+- `20-*.sh`: WordPress extensions (scion-managed: 20-plugins.sh)
+- `25-*.local.sh`, `30-*.local.sh`: Your custom extensions (themes, etc.)
+- `40-*.local.sh`, `50-*.local.sh`: Your custom commands and tweaks
+
+### Q: How do I test a theme instead of a plugin?
+**A:** Create `.devcontainer/sbin/bootstrap.sh.d/25-themes.local.sh` (note the `.local.sh` suffix to prevent it from being overwritten during upgrades):
+
+```bash
+#!/usr/bin/env bash
+log "Linking workspace theme..."
+THEME_SLUG="${THEME_SLUG:-my-theme}"
+THEME_DIR="${THEME_DIR:-themes/my-theme}"
+
+sudo mkdir -p "$DOCROOT/wp-content/themes"
+if [ -d "$WORKSPACE/$THEME_DIR" ]; then
+    sudo ln -sfn "$WORKSPACE/$THEME_DIR" "$DOCROOT/wp-content/themes/$THEME_SLUG"
+    wp theme activate "$THEME_SLUG"
+fi
+```
+
+Then add to `.devcontainer/.cs_env.d/theme.local.env`:
+```bash
+THEME_SLUG="my-theme"
+THEME_DIR="themes/my-theme"
+```
+
+The `.local.sh` suffix ensures your customization survives upgrades. The hook will run after plugin installation (20-plugins.sh) due to alphabetical ordering.
+
+### Q: Can I skip plugin installation in my fork?
+**A:** Don't modify `20-plugins.sh` (it's part of the scion and will be overwritten during upgrades). Instead, simply don't define plugin variables:
+
+- By default, `PLUGIN_SLUG`, `PLUGIN_DIR`, and `WP_PLUGINS` are empty in `.devcontainer/.cs_env`
+- Plugin configuration in `.devcontainer/.cs_env.d/50-plugins.local` is NOT copied during grafts (the `.local` suffix excludes it)
+- If you've created custom plugin configuration files, simply delete them or leave the variables empty
+
+The `20-plugins.sh` hook will run but do nothing when these variables are undefined or empty.
+
+### Q: How do I add custom WP-CLI commands during bootstrap?
+**A:** Create `.devcontainer/sbin/bootstrap.sh.d/40-custom.local.sh` (note the `.local.sh` suffix to prevent it from being overwritten during upgrades):
+
+```bash
+#!/usr/bin/env bash
+log "Running custom WP-CLI commands..."
+
+# Import test content
+wp plugin install wordpress-importer --activate
+wp import /path/to/content.xml --authors=create
+
+# Configure settings
+wp option update posts_per_page 20
+wp rewrite structure '/%year%/%monthnum%/%postname%/'
+```
+
+You can also create multiple hooks like `40-import-content.local.sh`, `45-configure-options.local.sh`, etc. All `.local.sh` files are excluded from scion updates.
+
+---
+
 Last updated: 2026-01-05

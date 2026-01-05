@@ -154,11 +154,7 @@ wp option update home "$WP_URL" \
 wp option update siteurl "$WP_URL" \
   --path="$DOCROOT" 
 
-log "Linking workspace plugin and mu-plugins..."
-sudo mkdir -p "$DOCROOT/wp-content/plugins" "$DOCROOT/wp-content"
-if [ -d "$WORKSPACE/$PLUGIN_DIR" ]; then
-  sudo ln -sfn "$WORKSPACE/$PLUGIN_DIR" "$DOCROOT/wp-content/plugins/$PLUGIN_SLUG"
-fi
+log "Linking workspace mu-plugins (needed for redirections)..."
 if [ -d "$WORKSPACE/.devcontainer/wp-content/mu-plugins" ]; then
   sudo rm -rf "$DOCROOT/wp-content/mu-plugins" || true
   sudo ln -sfn "$WORKSPACE/.devcontainer/wp-content/mu-plugins" "$DOCROOT/wp-content/mu-plugins"
@@ -173,44 +169,6 @@ sudo service apache2 restart || true
 wp rewrite structure '/%postname%/' --path="$DOCROOT" >/dev/null 2>&1 || true
 wp rewrite flush --path="$DOCROOT" >/dev/null 2>&1 || true
 
-# Activate the plugin to test
-wp plugin activate $PLUGIN_SLUG
-
-# Example: WP_PLUGINS="akismet, jetpack@12.4, https://downloads.wordpress.org/plugin/wp-mail-smtp.latest-stable.zip"
-if [ -n "${WP_PLUGINS:-}" ]; then
-  IFS=',' read -r -a _plugins <<< "$WP_PLUGINS"
-  for raw in "${_plugins[@]}"; do
-    plugin="$(echo "$raw" | xargs)"   # trim
-    [ -z "$plugin" ] && continue
-
-    # Version support: slug@x.y.z (skip if it's a URL/ZIP)
-    version=""
-    if [[ "$plugin" != http*://* && "$plugin" != *.zip && "$plugin" == *@* ]]; then
-      version="${plugin##*@}"
-      plugin="${plugin%%@*}"
-    fi
-
-    if [[ "$plugin" == http*://* || "$plugin" == *.zip ]]; then
-      # URL or ZIP install
-      wp plugin install "$plugin" --activate || echo "Failed to install from $plugin"
-    else
-      if wp plugin is-installed "$plugin"; then
-        # Already installed: activate, and optionally align to requested version
-        wp plugin activate "$plugin" || echo "Failed to activate $plugin"
-        if [ -n "$version" ]; then
-          wp plugin update "$plugin" --version="$version" || echo "Failed to update $plugin to $version"
-        fi
-      else
-        # Fresh install (with version if provided)
-        if [ -n "$version" ]; then
-          wp plugin install "$plugin" --version="$version" --activate || echo "Failed to install $plugin@$version"
-        else
-          wp plugin install "$plugin" --activate || echo "Failed to install $plugin"
-        fi
-      fi
-    fi
-  done
-fi
 
 # --- Bootstrap hooks (optional) ---
 # Source all scripts in bootstrap.sh.d/ in alphabetical order

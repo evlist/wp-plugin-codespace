@@ -35,7 +35,9 @@ Scion structure (short)
 │   └── graft.sh          # run this to graft the scion into a repo
 ├── sbin/
 │   ├── bootstrap.sh      # container startup script
-│   ├── bootstrap.sh.d/   # bootstrap hooks (sourced in order)
+│   ├── bootstrap.sh.d/   # modular bootstrap hooks (Debian .d style)
+│   │   ├── 10-aliases.sh # shell aliases (graft, upgrade-scion, export-scion)
+│   │   └── 20-plugins.sh # plugin installation and activation
 │   └── merge-env.sh      # merges .cs_env and .cs_env.d/*
 ├── tmp/                  # temporary files (gitignored)
 ├── var/                  # runtime data (gitignored)
