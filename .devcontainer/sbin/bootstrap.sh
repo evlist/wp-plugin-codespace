@@ -217,7 +217,7 @@ fi
 
 # --- Bootstrap hooks (optional) ---
 # Source all scripts in bootstrap.sh.d/ in alphabetical order
-BOOTSTRAP_DIR="${CODESPACE_VSCODE_FOLDER}/.devcontainer/sbin/bootstrap.sh.d"
+BOOTSTRAP_DIR="${WORKSPACE}/.devcontainer/sbin/bootstrap.sh.d"
 if [ -d "$BOOTSTRAP_DIR" ]; then
   for SCRIPT in "$BOOTSTRAP_DIR"/*; do
     if [ -f "$SCRIPT" ]; then
