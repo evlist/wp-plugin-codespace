@@ -5,6 +5,9 @@ SPDX-License-Identifier: GPL-3.0-or-later OR MIT
 -->
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=evlist/codespaces-grafting)
+[![Release](https://img.shields.io/github/v/release/evlist/codespaces-grafting?color=blue)](https://github.com/evlist/codespaces-grafting/releases)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later%20OR%20MIT-blue)](LICENSE)
+[![Graft](https://img.shields.io/badge/uses-graft-green)](https://github.com/evlist/codespaces-grafting)
 
 <img src=".devcontainer/assets/icon.svg" alt="codespaces-grafting logo" title="codespaces-grafting" width="256" style="float:right;max-width:256px;height:auto" />
 
@@ -76,6 +79,13 @@ Want more?
 - [MAINTAINER.md](.devcontainer/docs/MAINTAINER.md) — detailed procedures
 
 📝 Note: This root `README.md` is **not copied** when grafting. Your stock repository keeps its own README. Only `.devcontainer/` and managed `.vscode/` files are grafted.
+
+## Support & Community
+
+- **Questions?** Check the [FAQ](.devcontainer/docs/FAQ.md)
+- **Report bugs** or suggest features via [GitHub Issues](https://github.com/evlist/codespaces-grafting/issues)
+- **Contribute**: See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+- **Discussions**: Open a [GitHub Discussion](https://github.com/evlist/codespaces-grafting/discussions) for ideas and feedback
 
 ## License
 
