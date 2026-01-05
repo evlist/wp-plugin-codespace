@@ -30,7 +30,7 @@ Scion structure (short)
 ├── Dockerfile
 ├── .cs_env               # base environment variables
 ├── .cs_env.d/            # additional env files (Debian .d style)
-│   └── graft.env         # scion provenance (tracks grafted version)
+│   └── graft.local.env   # scion reference (defaults in scion, provenance in stock)
 ├── bin/
 │   └── graft.sh          # run this to graft the scion into a repo
 ├── sbin/
