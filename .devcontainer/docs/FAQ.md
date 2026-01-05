@@ -46,7 +46,7 @@ Think of it like grafting a fruit tree branch onto a rootstock: the scion (templ
 ## Updates & Maintenance
 
 ### Q: How do I update the scion to a newer version?
-**A:** Run `bash .devcontainer/bin/graft.sh upgrade` (or `cs_update` inside a Codespace). The script will:
+**A:** Run `bash .devcontainer/bin/graft.sh upgrade` (or `upgrade-scion` inside a Codespace). The script will:
 1. Clone the latest scion
 2. Compare your local files with the previous scion version
 3. Prompt you for each change

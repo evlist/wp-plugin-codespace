@@ -130,8 +130,11 @@ Exit codes
 ## Common commands and aliases
 
 Aliases provided in the Codespace image (convenience for maintainers)
-- `cs_install` — alias to `bin/graft.sh` for the initial install (interactive).
-- `cs_update` — alias to `bin/graft.sh` for updates (interactive).
+- `graft` — alias to `.devcontainer/bin/graft.sh` (all commands)
+- `upgrade-scion` — alias to `graft upgrade` (interactive update)
+- `export-scion` — alias to `graft export` (export to another repo)
+
+These aliases are defined in `.devcontainer/sbin/bootstrap.sh.d/10-aliases.sh`.
 
 Common commands
 - Initial install (workstation):
@@ -143,7 +146,7 @@ Common commands
   ```
 - Upgrade interactively (inside Codespace):
   ```bash
-  cs_update
+  upgrade-scion
   ```
 - Dry-run (preview):
   ```bash

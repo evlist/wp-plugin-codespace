@@ -62,8 +62,9 @@ All other `.vscode/` files you create are yours and won't be touched by upgrades
 
 🔁 Upgrade & maintainer quick guide
 - Interactive (inside a Codespace) — recommended:
-  - `cs_install` — initial install (alias to bin/graft.sh)
-  - `cs_update`  — interactive update (alias to bin/graft.sh)
+  - `graft upgrade` — interactive update
+  - `graft export` — export scion to another repo
+  - Aliases: `upgrade-scion`, `export-scion`
 - From a workstation:
   ```bash
   curl -L -o ~/Downloads/graft.sh \
