@@ -653,8 +653,8 @@ if [ "$FIRST_RUN" -eq 1 ] && [ "$DRY_RUN" != "true" ]; then
       branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
       debug "branch: '$branch'"
       badge_line="[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=${branch}&repo=${owner_repo})"
-      credit_line="Codespace created by the scion graft."
-      tmp="$(mktemp)"; { printf "%s\n%s\n\n" "$badge_line" "$credit_line"; cat "README.md"; } > "$tmp"; mv "$tmp" "README.md"
+      credit_line='<img src=".devcontainer/assets/icon.svg" width="64" height="64" alt="cs-grafting" />Codespace created with [evlist/codespaces-grafting](https://github.com/evlist/codespaces-grafting) -'
+      tmp="$(mktemp)"; { printf "%s\n%s\n\n" "$credit_line" "$badge_line" ; cat "README.md"; } > "$tmp"; mv "$tmp" "README.md"
       info "Inserted Codespaces badge and credit into README.md"
     fi
   fi
