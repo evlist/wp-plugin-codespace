@@ -4,3 +4,9 @@
 
 # SPDX-License-Identifier: GPL-3.0-or-later OR MIT
 
+# Local Plugin Configuration
+PLUGIN_SLUG=local-hello-world
+PLUGIN_DIR=plugins-src/hello-world
+
+# Additional Plugins (comma-separated)
+WP_PLUGINS=loco-translate

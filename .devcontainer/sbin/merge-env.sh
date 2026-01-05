@@ -27,6 +27,7 @@ if [ -f "$DEFAULTENV" ]; then
 fi
 
 # Second: merge all files in .devcontainer/.cs_env.d/ in alphabetical order
+mkdir -p "$ENVDIR"
 if [ -d "$ENVDIR" ]; then
     for FILE in "$ENVDIR"/*; do
         if [ -f "$FILE" ]; then
