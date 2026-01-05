@@ -9,19 +9,31 @@ set -euo pipefail
 log() { printf "[merge-env] %s\n" "$*"; }
 die() { printf "[merge-env:ERROR] %s\n" "$*" >&2; exit 1; }
 
-LOCALENV=${PWD}/.cs_env
 DEVCONTAINER=${PWD}/.devcontainer
 DEFAULTENV=${DEVCONTAINER}/.cs_env
+ENVDIR=${DEVCONTAINER}/.cs_env.d
 TMP=${DEVCONTAINER}/tmp
 MERGEDENV=${TMP}/.cs_env.merged
 
 mkdir -p $TMP
 rm -f $MERGEDENV
 
-for FILE in $DEFAULTENV $LOCALENV
-do
-    log "Copying $FILE (if exists)"
-    echo "# Copied from $FILE:" >> $MERGEDENV
-    cat $FILE >> $MERGEDENV 2>/dev/null || true
+# First: merge .devcontainer/.cs_env if it exists
+if [ -f "$DEFAULTENV" ]; then
+    log "Copying $DEFAULTENV"
+    echo "# Copied from $DEFAULTENV:" >> $MERGEDENV
+    cat "$DEFAULTENV" >> $MERGEDENV
     echo >> $MERGEDENV
-done
+fi
+
+# Second: merge all files in .devcontainer/.cs_env.d/ in alphabetical order
+if [ -d "$ENVDIR" ]; then
+    for FILE in "$ENVDIR"/*; do
+        if [ -f "$FILE" ]; then
+            log "Copying $FILE"
+            echo "# Copied from $FILE:" >> $MERGEDENV
+            cat "$FILE" >> $MERGEDENV
+            echo >> $MERGEDENV
+        fi
+    done
+fi

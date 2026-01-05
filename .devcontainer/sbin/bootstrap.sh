@@ -215,31 +215,26 @@ if [ -n "${WP_PLUGINS:-}" ]; then
   done
 fi
 
-# --- Local bootstrap hook (optional) ---
-# LOCALBOOTSTRAP: path relative to $WORKSPACE (e.g., "scripts/bootstrap-local.sh")
-if [ -n "${LOCALBOOTSTRAP:-}" ]; then
-  # Allow absolute path too; otherwise treat as relative to $WORKSPACE
-  case "$LOCALBOOTSTRAP" in
-    /*) LOCALBOOTSTRAP_PATH="$LOCALBOOTSTRAP" ;;
-    *)  LOCALBOOTSTRAP_PATH="$WORKSPACE/$LOCALBOOTSTRAP" ;;
-  esac
-
-  if [ ! -f "$LOCALBOOTSTRAP_PATH" ]; then
-    log "LOCALBOOTSTRAP script not found at: ${LOCALBOOTSTRAP_PATH} (skipping)"
-  else
-    log "Executing LOCALBOOTSTRAP: ${LOCALBOOTSTRAP_PATH}"
-
-    # Source the script so it runs in the current shell: inherits all variables and functions
-    # Be tolerant of errors: don't abort the whole bootstrap
-    set +e
-    . "$LOCALBOOTSTRAP_PATH"
-    status=$?
-    set -e
-
-    if [ "$status" -ne 0 ]; then
-      log "LOCALBOOTSTRAP exited with status $status; continuing"
+# --- Bootstrap hooks (optional) ---
+# Source all scripts in bootstrap.sh.d/ in alphabetical order
+BOOTSTRAP_DIR="${CODESPACE_VSCODE_FOLDER}/.devcontainer/sbin/bootstrap.sh.d"
+if [ -d "$BOOTSTRAP_DIR" ]; then
+  for SCRIPT in "$BOOTSTRAP_DIR"/*; do
+    if [ -f "$SCRIPT" ]; then
+      log "Sourcing bootstrap hook: ${SCRIPT}"
+      
+      # Source the script so it runs in the current shell: inherits all variables and functions
+      # Be tolerant of errors: don't abort the whole bootstrap
+      set +e
+      . "$SCRIPT"
+      status=$?
+      set -e
+      
+      if [ "$status" -ne 0 ]; then
+        log "Bootstrap hook ${SCRIPT} exited with status $status; continuing"
+      fi
     fi
-  fi
+  done
 fi
 
 log "Done. Visit your WP blog following the link in the Ports tab."

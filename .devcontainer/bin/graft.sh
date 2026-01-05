@@ -288,7 +288,7 @@ apply_devcontainer() {
   command -v rsync >/dev/null 2>&1 || err "rsync required; install rsync."
   local opts=(-a --delete)
   [ "$DRY_RUN" = "true" ] && opts+=(--dry-run)
-  local excludes=(--exclude "tmp/" --exclude "var/")
+  local excludes=(--exclude "tmp/" --exclude "var/" --exclude "*.local" --exclude "*.local.*")
   info "Syncing .devcontainer -> $dst/.devcontainer"
   rsync "${opts[@]}" "${excludes[@]}" "$src/.devcontainer/" "$dst/.devcontainer/"
 }

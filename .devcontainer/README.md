@@ -21,13 +21,22 @@ What’s in the scion (high level)
 Scion structure (short)
 ```
 .devcontainer/
-├── README.md        # this file (short)
-├── docs/            # extended scion docs (upgrade guides, internals)
-├── assets/          # icons, images used in scion docs
+├── README.md             # this file (short)
+├── docs/                 # extended scion docs (upgrade guides, internals)
+├── assets/               # icons, images used in scion docs
 ├── devcontainer.json
 ├── Dockerfile
-└── bin/
-    └── graft.sh      # run this to graft the scion into a repo
+├── .cs_env               # base environment variables
+├── .cs_env.d/            # additional env files (Debian .d style)
+├── bin/
+│   └── graft.sh          # run this to graft the scion into a repo
+├── sbin/
+│   ├── bootstrap.sh      # container startup script
+│   ├── bootstrap.sh.d/   # bootstrap hooks (sourced in order)
+│   └── merge-env.sh      # merges .cs_env and .cs_env.d/*
+├── tmp/                  # temporary files (gitignored)
+├── var/                  # runtime data (gitignored)
+└── wp-content/           # WordPress content customizations
 ```
 
 🔁 Upgrade & maintainer quick guide

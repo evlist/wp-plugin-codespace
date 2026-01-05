@@ -55,8 +55,17 @@ Project structure (high level)
 │   ├── assets/                   # icons, images used in scion docs
 │   ├── devcontainer.json
 │   ├── Dockerfile
-│   └── bin/
-│       └── graft.sh              # installer/updater (graft)
+│   ├── .cs_env                   # base environment variables
+│   ├── .cs_env.d/                # additional env files (Debian .d style)
+│   ├── bin/
+│   │   └── graft.sh              # installer/updater (graft)
+│   ├── sbin/
+│   │   ├── bootstrap.sh          # container startup script
+│   │   ├── bootstrap.sh.d/       # bootstrap hooks (sourced in order)
+│   │   └── merge-env.sh          # merges .cs_env and .cs_env.d/*
+│   ├── tmp/                      # temporary files (gitignored)
+│   ├── var/                      # runtime data (gitignored)
+│   └── wp-content/               # WordPress content customizations
 ├── .vscode/                      # editor templates & stubs (managed)
 └── plugins-src/                  # example/sample plugin(s) (WP-focused examples)
 ```

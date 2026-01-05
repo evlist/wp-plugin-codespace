@@ -1,4 +1,0 @@
-# Local env file which overrides .devcontainer/.cs_env
-
-# Local bootstrap script
-LOCALBOOTSTRAP=bootstrap-local.sh
