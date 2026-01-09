@@ -28,6 +28,13 @@ Why use this
 - ⚙️ Minimal & conservative: provides PHP, WP‑CLI and common tooling while preserving your project/editor settings.
 - 🔁 Simple updater: graft.sh grafts the scion into your repo and helps you adopt template improvements safely.
 
+Development tools included
+- **Web stack**: Apache, MariaDB, PHP (with Xdebug)
+- **WordPress**: WP-CLI for command-line WordPress management
+- **Code quality**: Composer, PHP_CodeSniffer (phpcs) with WordPress Coding Standards
+- **DevOps**: GitHub CLI (gh), REUSE tool for license compliance
+- **Common utilities**: curl, jq, less, unzip
+
 Terminology (short)
 - scion — the Codespace/devcontainer template (.devcontainer/.vscode)
 - stock — your repository getting the scion grafted

@@ -54,3 +54,6 @@ wp-config.php
 # Devcontainer temp and var dirs
 .devcontainer/tmp/
 .devcontainer/var/
+
+# Composer cache and vendor directories
+.composer/
